@@ -65,30 +65,9 @@ app/src/main/java/com/unip/petcareconnect/
     └── AvisosActivity.java
 ```
 
----
+----
 
-## 4. Como Importar e Executar no Android Studio
-
-### Pré-requisitos
-- **Android Studio** Hedgehog (2023.1.1) ou superior / Ladybug.
-- **JDK 17** ou superior (configurado nas opções do Gradle do Android Studio).
-- Android SDK com **API 34** instalada.
-
-### Passo a Passo
-1. Abra o **Android Studio**.
-2. Selecione **File > Open...** (ou *Open an Existing Project*).
-3. Navegue até a pasta:
-   ```
-   c:\Users\luana\Downloads\pim 4\PetCareConnectMobile
-   ```
-   e clique em **OK**.
-4. O Android Studio detectará os arquivos `settings.gradle` e `build.gradle` e iniciará o **Gradle Sync** automaticamente.
-5. Selecione um Emulador Android (AVD) com Android 8.0+ (API 26+) ou conecte um dispositivo físico via USB com depuração ativada.
-6. Clique no botão verde **Run 'app'** (`Shift + F10`).
-
----
-
-## 5. Credenciais de Teste e Modo Offline
+## 4. Credenciais de Teste e Modo Offline
 
 O aplicativo possui dados de demonstração integrados em seu repositório local. Ele funciona **imediatamente mesmo sem a API estar rodando**, permitindo a apresentação completa das telas para a banca examinadora da UNIP:
 
@@ -102,7 +81,7 @@ O aplicativo possui dados de demonstração integrados em seu repositório local
 
 ---
 
-## 6. Conexão com o Backend ASP.NET Core (PIM III)
+## 5. Conexão com o Backend ASP.NET Core (PIM III)
 
 Quando a API web do PetCare Connect estiver em execução na sua máquina local:
 - No emulador padrão do Android Studio, o endereço padrão `http://10.0.2.2:5000/` já vem pré-configurado e aponta para o `localhost` do seu computador.
@@ -110,7 +89,7 @@ Quando a API web do PetCare Connect estiver em execução na sua máquina local:
 
 ---
 
-## 7. Tecnologias e Bibliotecas Utilizadas
+## 6. Tecnologias e Bibliotecas Utilizadas
 
 - **Linguagem**: Java 17 (Nativo Android)
 - **UI & Design**: Google Material Components 1.11.0, CoordinatorLayout, ConstraintLayout, SwipeRefreshLayout
