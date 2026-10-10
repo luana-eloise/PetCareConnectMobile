@@ -1,0 +1,49 @@
+<resources>
+    <string name="app_name">PetCare Connect</string>
+    <string name="slogan">Cuidado animal inteligente e conectado</string>
+    
+    <!-- Login & Cadastro -->
+    <string name="login_title">Acesse sua conta</string>
+    <string name="login_sub">Selecione seu perfil e gerencie seus pets</string>
+    <string name="label_login">Login / Usuário</string>
+    <string name="label_password">Senha</string>
+    <string name="label_role">Perfil de Acesso</string>
+    <string name="btn_login">Entrar no Sistema</string>
+    <string name="btn_register">Criar nova conta de Tutor</string>
+    <string name="role_tutor">Tutor</string>
+    <string name="role_vet">Veterinário</string>
+    <string name="role_admin">Administrador</string>
+
+    <!-- Dashboard -->
+    <string name="greeting">Olá, %1$s 👋</string>
+    <string name="dashboard_sub">Acompanhe a saúde dos seus animais em tempo real</string>
+    <string name="stat_pets">Pets Cadastrados</string>
+    <string name="stat_consultas">Consultas</string>
+    <string name="stat_vacinas">Vacinas</string>
+    <string name="stat_relatorios">Relatórios</string>
+
+    <!-- Pets -->
+    <string name="title_pets">Meus Animais</string>
+    <string name="btn_add_pet">+ Cadastrar Pet</string>
+    <string name="pet_name">Nome do Pet</string>
+    <string name="pet_type">Espécie / Tipo</string>
+    <string name="pet_breed">Raça</string>
+    <string name="pet_age">Idade (anos)</string>
+    <string name="pet_weight">Peso (kg)</string>
+
+    <!-- Consultas -->
+    <string name="title_consultas">Consultas Agendadas</string>
+    <string name="btn_schedule_consulta">+ Agendar Consulta</string>
+    <string name="select_pet">Selecione o Pet</string>
+    <string name="select_vet">Veterinário Responsável</string>
+    <string name="date">Data da Consulta</string>
+    <string name="time">Horário</string>
+    <string name="btn_cancel_consulta">Cancelar Consulta</string>
+
+    <!-- Vacinas & Historico -->
+    <string name="title_vacinas">Caderneta de Vacinação</string>
+    <string name="title_historico">Prontuário e Histórico</string>
+    <string name="title_relatorios">Relatórios Clínicos</string>
+    <string name="title_avisos">Notificações e Avisos</string>
+    <string name="btn_share_pdf">Compartilhar Relatório (PDF)</string>
+</resources>
