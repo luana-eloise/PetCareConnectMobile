@@ -117,13 +117,18 @@ public class PetsActivity extends AppCompatActivity {
     }
 
     private void mostrarOpcoesPet(Pet pet) {
-        CharSequence[] opcoes = {"Editar dados", "Excluir pet"};
+        CharSequence[] opcoes = {"Editar dados", "Ver Histórico Clínico", "Excluir pet"};
         new AlertDialog.Builder(this)
                 .setTitle(pet.getNome())
                 .setItems(opcoes, (dialog, which) -> {
                     if (which == 0) {
                         mostrarDialogPet(pet);
                     } else if (which == 1) {
+                        android.content.Intent intent = new android.content.Intent(PetsActivity.this, HistoricoActivity.class);
+                        intent.putExtra(HistoricoActivity.EXTRA_PET_ID, pet.getId());
+                        intent.putExtra(HistoricoActivity.EXTRA_PET_NOME, pet.getNome());
+                        startActivity(intent);
+                    } else if (which == 2) {
                         confirmarExclusaoPet(pet);
                     }
                 })

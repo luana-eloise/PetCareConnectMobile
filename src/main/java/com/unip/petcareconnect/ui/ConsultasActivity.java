@@ -166,17 +166,29 @@ public class ConsultasActivity extends AppCompatActivity {
 
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_consulta, null);
         Spinner spinnerPets = dialogView.findViewById(R.id.spDialogConsultaPet);
+        Spinner spinnerVets = dialogView.findViewById(R.id.spDialogConsultaVet);
         EditText etDataConsulta = dialogView.findViewById(R.id.etDialogConsultaData);
         EditText etHorarioConsulta = dialogView.findViewById(R.id.etDialogConsultaHora);
         EditText etMotivo = dialogView.findViewById(R.id.etDialogConsultaMotivo);
         EditText etObservacoes = dialogView.findViewById(R.id.etDialogConsultaObs);
 
+        // Pets
         List<String> nomesPets = new ArrayList<>();
         for (Pet p : petList) {
             nomesPets.add(p.getNome() + " (" + p.getEspecie() + ")");
         }
         ArrayAdapter<String> petAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, nomesPets);
         spinnerPets.setAdapter(petAdapter);
+
+        // Veterinários disponíveis
+        List<String> veterinarios = new ArrayList<>();
+        veterinarios.add("Dr(a). Ana Lima — Clínica Geral");
+        veterinarios.add("Dr(a). Carlos Mendes — Dermatologia");
+        veterinarios.add("Dr(a). Fernanda Costa — Ortopedia");
+        veterinarios.add("Dr(a). Ricardo Alves — Cardiologia");
+        veterinarios.add("Dr(a). Juliana Rocha — Nutrição Animal");
+        ArrayAdapter<String> vetAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, veterinarios);
+        spinnerVets.setAdapter(vetAdapter);
 
         TextInputLayout tilData = dialogView.findViewById(R.id.tilDialogConsultaData);
         TextInputLayout tilHora = dialogView.findViewById(R.id.tilDialogConsultaHora);
@@ -201,6 +213,7 @@ public class ConsultasActivity extends AppCompatActivity {
                 .setPositiveButton("Agendar", (dialog, which) -> {
                     int selectedPetIndex = spinnerPets.getSelectedItemPosition();
                     Pet petSelecionado = petList.get(selectedPetIndex);
+                    String vetSelecionado = veterinarios.get(spinnerVets.getSelectedItemPosition());
                     String data = etDataConsulta.getText().toString().trim();
                     String horario = etHorarioConsulta.getText().toString().trim();
                     String motivo = etMotivo.getText().toString().trim();
@@ -228,7 +241,7 @@ public class ConsultasActivity extends AppCompatActivity {
                     novaConsulta.setPetId(petSelecionado.getId());
                     novaConsulta.setPetNome(petSelecionado.getNome());
                     novaConsulta.setTutorId(sessionManager.getUserId());
-                    novaConsulta.setVeterinarioNome("Dr(a). Clínico Geral");
+                    novaConsulta.setVeterinarioNome(vetSelecionado);
                     novaConsulta.setData(data);
                     novaConsulta.setHorario(horario);
                     novaConsulta.setMotivo(motivo);

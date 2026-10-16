@@ -318,8 +318,23 @@ public class PetCareRepository {
         List<Consulta> lista = obterConsultasLocais();
         for (Consulta c : lista) {
             if (c.getId() == id) {
-                // RN-005: Se cancelamento for com menos de 24h, status vira NaoCompareceu
-                c.setStatus("NaoCompareceu");
+                // RN-005: cancelamento com menos de 24h de antecedência → NaoCompareceu
+                //         cancelamento com 24h ou mais de antecedência → Cancelada
+                String novoStatus = "Cancelada";
+                try {
+                    String dataStr = c.getData() != null ? c.getData().trim() : "";
+                    String horaStr = c.getHora() != null ? c.getHora().trim() : "00:00";
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault());
+                    java.util.Date dataConsulta = sdf.parse(dataStr + " " + horaStr);
+                    if (dataConsulta != null) {
+                        long diffMs = dataConsulta.getTime() - System.currentTimeMillis();
+                        long vintEQuatroHorasMs = 24L * 60 * 60 * 1000;
+                        if (diffMs < vintEQuatroHorasMs) {
+                            novoStatus = "NaoCompareceu";
+                        }
+                    }
+                } catch (Exception ignored) {}
+                c.setStatus(novoStatus);
                 salvarLista("consultas", lista);
                 callback.onSuccess(true);
                 return;

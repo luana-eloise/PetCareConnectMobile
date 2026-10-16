@@ -61,6 +61,11 @@
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 
+        <activity
+            android:name=".ui.HistoricoActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.PetsActivity" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
