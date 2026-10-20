@@ -32,7 +32,7 @@ public class LoginActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
         if (sessionManager.isLoggedIn()) {
-            abrirMain();
+            abrirTelaPorPerfil(sessionManager.getPerfil());
             return;
         }
 
@@ -47,19 +47,8 @@ public class LoginActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
 
         btnLogin.setOnClickListener(v -> tentarLogin());
-        btnIrCadastro.setOnClickListener(v -> {
-            Intent intent = new Intent(LoginActivity.this, CadastroActivity.class);
-            startActivity(intent);
-        });
-
-        // Configuração de URL personalizada ao clicar longo no cabeçalho
-        // View headerView = findViewById(R.id.tvAppSubtitle);
-        // if (headerView != null) {
-        //     headerView.setOnLongClickListener(v -> {
-        //         mostrarDialogConfiguracaoUrl();
-        //         return true;
-        //     });
-        // }
+        btnIrCadastro.setOnClickListener(v ->
+                startActivity(new Intent(LoginActivity.this, CadastroActivity.class)));
     }
 
     private void tentarLogin() {
@@ -85,15 +74,10 @@ public class LoginActivity extends AppCompatActivity {
             public void onSuccess(LoginResponse response) {
                 setLoading(false);
                 if (response != null && response.getToken() != null) {
-                    sessionManager.salvarSessao(
-                            response.getToken(),
-                            response.getUserId(),
-                            response.getNome(),
-                            response.getEmail(),
-                            response.getRole()
-                    );
-                    Toast.makeText(LoginActivity.this, "Bem-vindo, " + response.getNome() + "!", Toast.LENGTH_SHORT).show();
-                    abrirMain();
+                    // O repositório já salvou a sessão (token, id, nome, login, perfil)
+                    Toast.makeText(LoginActivity.this,
+                            "Bem-vindo, " + response.getNome() + "!", Toast.LENGTH_SHORT).show();
+                    abrirTelaPorPerfil(response.getPerfil());
                 } else {
                     Snackbar.make(btnLogin, "Erro ao processar login.", Snackbar.LENGTH_LONG).show();
                 }
@@ -113,9 +97,16 @@ public class LoginActivity extends AppCompatActivity {
         btnIrCadastro.setEnabled(!loading);
     }
 
-    private void abrirMain() {
-        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+    private void abrirTelaPorPerfil(String perfil) {
+        Intent intent;
+        if ("Veterinario".equalsIgnoreCase(perfil)) {
+            intent = new Intent(this, VetMainActivity.class);
+        } else if ("Admin".equalsIgnoreCase(perfil)) {
+            intent = new Intent(this, AdminMainActivity.class);
+        } else {
+            intent = new Intent(this, MainActivity.class);
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }

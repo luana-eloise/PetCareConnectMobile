@@ -292,14 +292,53 @@ public class PetCareRepository {
         return obterLista("consultas", type);
     }
 
+    /**
+     * Lista as consultas conforme o perfil logado:
+     * - Admin: todas
+     * - Veterinario: apenas as consultas dele
+     * - Tutor: apenas as consultas dos pets dele
+     */
+    public void listarConsultasDoPerfil(Callback<List<Consulta>> callback) {
+        listarConsultas(new Callback<List<Consulta>>() {
+            @Override
+            public void onSuccess(List<Consulta> todas) {
+                String perfil = session.getPerfil();
+                int userId = session.getUserId();
+                List<Consulta> filtradas = new ArrayList<>();
+
+                if ("Admin".equalsIgnoreCase(perfil)) {
+                    filtradas.addAll(todas);
+                } else if ("Veterinario".equalsIgnoreCase(perfil)) {
+                    for (Consulta c : todas) {
+                        if (c.getVeterinarioId() == userId) filtradas.add(c);
+                    }
+                } else {
+                    Set<Integer> idsDosMeusPets = new HashSet<>();
+                    for (Pet p : obterPetsLocais()) {
+                        if (p.getTutorId() == userId) idsDosMeusPets.add(p.getId());
+                    }
+                    for (Consulta c : todas) {
+                        if (idsDosMeusPets.contains(c.getPetId())) filtradas.add(c);
+                    }
+                }
+                callback.onSuccess(filtradas);
+            }
+
+            @Override
+            public void onError(String message) {
+                callback.onError(message);
+            }
+        });
+    }
+
     public void agendarConsulta(Consulta consulta, Callback<Consulta> callback) {
         List<Consulta> lista = obterConsultasLocais();
 
         // RN-002: Verificação de conflito de horário
         for (Consulta c : lista) {
             if (c.getData().equals(consulta.getData()) &&
-                c.getHora().equals(consulta.getHora()) &&
-                !c.getStatus().equals("Cancelada")) {
+                    c.getHora().equals(consulta.getHora()) &&
+                    !c.getStatus().equals("Cancelada")) {
                 callback.onError("Horário já reservado para este veterinário (Regra RN-002).");
                 return;
             }
@@ -334,6 +373,19 @@ public class PetCareRepository {
                         }
                     }
                 } catch (Exception ignored) {}
+                c.setStatus(novoStatus);
+                salvarLista("consultas", lista);
+                callback.onSuccess(true);
+                return;
+            }
+        }
+        callback.onError("Consulta não encontrada.");
+    }
+
+    public void atualizarStatusConsulta(int id, String novoStatus, Callback<Boolean> callback) {
+        List<Consulta> lista = obterConsultasLocais();
+        for (Consulta c : lista) {
+            if (c.getId() == id) {
                 c.setStatus(novoStatus);
                 salvarLista("consultas", lista);
                 callback.onSuccess(true);
