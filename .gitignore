@@ -2,3 +2,8 @@
 /.gradle/
 /build/
 /build/intermediates/javac/debug/classes/
+**/build/
+.gradle/
+.idea/
+*.iml
+local.properties
