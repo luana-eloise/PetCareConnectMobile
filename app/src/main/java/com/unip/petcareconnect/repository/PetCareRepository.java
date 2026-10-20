@@ -20,10 +20,13 @@ import retrofit2.Response;
 
 /**
  * Repositório Unificado (Online/Offline) do PetCare Connect Mobile.
+ *
  * Cumpre os requisitos de Integração com APIs e Sincronização de Dados do PIM IV.
  */
 public class PetCareRepository {
     private static final String PREF_DATA = "petcare_mobile_local_db";
+    public static final String PREFIXO_ERRO_PERFIL = "Esta conta é de perfil";
+
     private final Context context;
     private final SessionManager session;
     private final SharedPreferences dataPref;
@@ -114,10 +117,9 @@ public class PetCareRepository {
         api.login(new LoginRequest(login, senha, perfil)).enqueue(new retrofit2.Callback<ApiResponse<LoginResponse>>() {
             @Override
             public void onResponse(Call<ApiResponse<LoginResponse>> call, Response<ApiResponse<LoginResponse>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
-                    LoginResponse data = response.body().getDados();
-                    session.salvarSessao(data.getToken(), data.getUsuarioId(), data.getNome(), data.getLogin(), data.getPerfil());
-                    callback.onSuccess(data);
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()
+                        && response.body().getDados() != null) {
+                    finalizarLogin(response.body().getDados(), callback);
                     return;
                 }
                 fallbackLogin(login, senha, perfil, callback);
@@ -130,20 +132,31 @@ public class PetCareRepository {
         });
     }
 
-    private void fallbackLogin(String login, String senha, String perfil, Callback<LoginResponse> callback) {
-        // Validação de credenciais do PIM III
+    /** Só salva a sessão se a conta for de Tutor. */
+    private void finalizarLogin(LoginResponse data, Callback<LoginResponse> callback) {
+        String perfil = data.getPerfil();
+        if (perfil != null && !"Tutor".equalsIgnoreCase(perfil.trim())) {
+            callback.onError(mensagemPerfilNaoPermitido(perfil));
+            return;
+        }
+        session.salvarSessao(data.getToken(), data.getUsuarioId(), data.getNome(), data.getLogin(), "Tutor");
+        callback.onSuccess(data);
+    }
+
+    private String mensagemPerfilNaoPermitido(String perfil) {
+        String nome = "Admin".equalsIgnoreCase(perfil) ? "Administrador" : "Veterinário";
+        return PREFIXO_ERRO_PERFIL + " " + nome + ". Para acessar o painel de gestão, "
+                + "por favor utilize o nosso portal web em: dashboard.petcareconnect.com";
+    }
+
+    private void fallbackLogin(String login, String senha, String perfilRequerido, Callback<LoginResponse> callback) {
+        // Credenciais de teste do PIM III (modo offline)
         if (login.equalsIgnoreCase("tutor_teste") && (senha.equals("Tutor123!") || senha.equals("123456"))) {
-            LoginResponse res = new LoginResponse("mock_token_tutor", 1, "Maria Oliveira", "tutor_teste", "Tutor");
-            session.salvarSessao(res.getToken(), res.getUsuarioId(), res.getNome(), res.getLogin(), res.getPerfil());
-            callback.onSuccess(res);
+            finalizarLogin(new LoginResponse("mock_token_tutor", 1, "Maria Oliveira", "tutor_teste", "Tutor"), callback);
         } else if (login.equalsIgnoreCase("vet_teste") && (senha.equals("Vet123!") || senha.equals("123456"))) {
-            LoginResponse res = new LoginResponse("mock_token_vet", 2, "Dr. Carlos Mendes", "vet_teste", "Veterinario");
-            session.salvarSessao(res.getToken(), res.getUsuarioId(), res.getNome(), res.getLogin(), res.getPerfil());
-            callback.onSuccess(res);
+            finalizarLogin(new LoginResponse("mock_token_vet", 2, "Dr. Carlos Mendes", "vet_teste", "Veterinario"), callback);
         } else if (login.equalsIgnoreCase("admin_teste") && (senha.equals("Admin123!") || senha.equals("123456"))) {
-            LoginResponse res = new LoginResponse("mock_token_admin", 3, "Administrador PetCare", "admin_teste", "Admin");
-            session.salvarSessao(res.getToken(), res.getUsuarioId(), res.getNome(), res.getLogin(), res.getPerfil());
-            callback.onSuccess(res);
+            finalizarLogin(new LoginResponse("mock_token_admin", 3, "Administrador PetCare", "admin_teste", "Admin"), callback);
         } else {
             callback.onError("Login ou senha inválidos.");
         }
@@ -367,8 +380,8 @@ public class PetCareRepository {
                     java.util.Date dataConsulta = sdf.parse(dataStr + " " + horaStr);
                     if (dataConsulta != null) {
                         long diffMs = dataConsulta.getTime() - System.currentTimeMillis();
-                        long vintEQuatroHorasMs = 24L * 60 * 60 * 1000;
-                        if (diffMs < vintEQuatroHorasMs) {
+                        long vinteEQuatroHorasMs = 24L * 60L * 60L * 1000L;
+                        if (diffMs < vinteEQuatroHorasMs) {
                             novoStatus = "NaoCompareceu";
                         }
                     }
@@ -477,5 +490,4 @@ public class PetCareRepository {
         salvarLista("avisos", avisos);
         callback.onSuccess(true);
     }
-
 }

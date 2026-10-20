@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -22,6 +23,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText etEmail, etSenha;
     private Button btnLogin, btnIrCadastro;
+    private TextView tvEsqueciSenha;
     private ProgressBar progressBar;
     private PetCareRepository repository;
     private SessionManager sessionManager;
@@ -32,8 +34,12 @@ public class LoginActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
         if (sessionManager.isLoggedIn()) {
-            abrirTelaPorPerfil(sessionManager.getPerfil());
-            return;
+            if ("Tutor".equalsIgnoreCase(sessionManager.getPerfil())) {
+                abrirMain();
+                return;
+            }
+            // Sessão antiga de vet/admin (de versões anteriores do app)
+            sessionManager.logout();
         }
 
         setContentView(R.layout.activity_login);
@@ -44,11 +50,13 @@ public class LoginActivity extends AppCompatActivity {
         etSenha = findViewById(R.id.etSenha);
         btnLogin = findViewById(R.id.btnLogin);
         btnIrCadastro = findViewById(R.id.btnCadastrar);
+        tvEsqueciSenha = findViewById(R.id.tvEsqueciSenha);
         progressBar = findViewById(R.id.progressBar);
 
         btnLogin.setOnClickListener(v -> tentarLogin());
         btnIrCadastro.setOnClickListener(v ->
                 startActivity(new Intent(LoginActivity.this, CadastroActivity.class)));
+        tvEsqueciSenha.setOnClickListener(v -> mostrarEsqueciSenha());
     }
 
     private void tentarLogin() {
@@ -74,10 +82,9 @@ public class LoginActivity extends AppCompatActivity {
             public void onSuccess(LoginResponse response) {
                 setLoading(false);
                 if (response != null && response.getToken() != null) {
-                    // O repositório já salvou a sessão (token, id, nome, login, perfil)
                     Toast.makeText(LoginActivity.this,
                             "Bem-vindo, " + response.getNome() + "!", Toast.LENGTH_SHORT).show();
-                    abrirTelaPorPerfil(response.getPerfil());
+                    abrirMain();
                 } else {
                     Snackbar.make(btnLogin, "Erro ao processar login.", Snackbar.LENGTH_LONG).show();
                 }
@@ -86,48 +93,53 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onError(String mensagem) {
                 setLoading(false);
-                Snackbar.make(btnLogin, "Falha no login: " + mensagem, Snackbar.LENGTH_LONG).show();
+                if (mensagem != null && mensagem.startsWith(PetCareRepository.PREFIXO_ERRO_PERFIL)) {
+                    new AlertDialog.Builder(LoginActivity.this)
+                            .setTitle("Acesso pelo portal web")
+                            .setMessage(mensagem)
+                            .setPositiveButton("Entendi", null)
+                            .show();
+                } else {
+                    Snackbar.make(btnLogin, mensagem, Snackbar.LENGTH_LONG).show();
+                }
             }
         });
     }
 
+    private void mostrarEsqueciSenha() {
+        final EditText input = new EditText(this);
+        input.setHint("E-mail cadastrado");
+        input.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Esqueci minha senha")
+                .setMessage("Informe o e-mail da sua conta para receber as instruções de recuperação.")
+                .setView(input)
+                .setPositiveButton("Enviar", (dialog, which) -> {
+                    String email = input.getText().toString().trim();
+                    if (TextUtils.isEmpty(email)) {
+                        Toast.makeText(this, "Informe o e-mail.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    // TODO: chamar o endpoint de recuperação de senha do backend quando existir
+                    Toast.makeText(this,
+                            "Se o e-mail estiver cadastrado, você receberá as instruções.",
+                            Toast.LENGTH_LONG).show();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
     private void setLoading(boolean loading) {
-        if (progressBar != null) progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
+        progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
         btnLogin.setEnabled(!loading);
         btnIrCadastro.setEnabled(!loading);
     }
 
-    private void abrirTelaPorPerfil(String perfil) {
-        Intent intent;
-        if ("Veterinario".equalsIgnoreCase(perfil)) {
-            intent = new Intent(this, VetMainActivity.class);
-        } else if ("Admin".equalsIgnoreCase(perfil)) {
-            intent = new Intent(this, AdminMainActivity.class);
-        } else {
-            intent = new Intent(this, MainActivity.class);
-        }
+    private void abrirMain() {
+        Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
-    }
-
-    private void mostrarDialogConfiguracaoUrl() {
-        final EditText input = new EditText(this);
-        input.setText(sessionManager.getBaseUrl());
-        input.setHint("http://10.0.2.2:5000/");
-
-        new AlertDialog.Builder(this)
-                .setTitle("Configurar URL da API (ASP.NET)")
-                .setMessage("Insira o endpoint base do backend PetCare Connect:")
-                .setView(input)
-                .setPositiveButton("Salvar", (dialog, which) -> {
-                    String novaUrl = input.getText().toString().trim();
-                    if (!TextUtils.isEmpty(novaUrl)) {
-                        sessionManager.setBaseUrl(novaUrl);
-                        Toast.makeText(LoginActivity.this, "URL atualizada!", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
     }
 }

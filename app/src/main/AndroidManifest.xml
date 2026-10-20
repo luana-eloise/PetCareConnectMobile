@@ -37,14 +37,6 @@
             android:exported="false" />
 
         <activity
-            android:name=".ui.VetMainActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.AdminMainActivity"
-            android:exported="false" />
-
-        <activity
             android:name=".ui.PetsActivity"
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
