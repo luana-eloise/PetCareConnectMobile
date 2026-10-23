@@ -11,19 +11,21 @@ import com.unip.petcareconnect.model.*;
 import com.unip.petcareconnect.util.SessionManager;
 
 import java.lang.reflect.Type;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Repositório Unificado (Online/Offline) do PetCare Connect Mobile.
- *
- * Cumpre os requisitos de Integração com APIs e Sincronização de Dados do PIM IV.
+ * Repositório central de dados do aplicativo PetCare Connect Mobile.
+ * Implementa o padrão Repository com sincronização híbrida (Cache Local Offline + API REST Online).
+ * Escopo exclusivo para as operações e regras de negócio do perfil de Tutor.
  */
+@SuppressWarnings("unused")
 public class PetCareRepository {
+
     private static final String PREF_DATA = "petcare_mobile_local_db";
     public static final String PREFIXO_ERRO_PERFIL = "Esta conta é de perfil";
 
@@ -42,23 +44,24 @@ public class PetCareRepository {
     public PetCareRepository(Context context) {
         this.context = context.getApplicationContext();
         this.session = new SessionManager(context);
-        this.dataPref = context.getSharedPreferences(PREF_DATA, Context.MODE_PRIVATE);
+        this.dataPref = this.context.getSharedPreferences(PREF_DATA, Context.MODE_PRIVATE);
         this.gson = new Gson();
-        initLocalDatabaseIfEmpty();
+        inicializarBaseLocalSeVazia();
     }
 
     // =========================================================================
-    // SEED LOCAL (DADOS DO PIM III PARA OPERAÇÃO OFFLINE)
+    // SEED DE DADOS LOCAIS (SUPORTE OFFLINE DO PIM IV)
     // =========================================================================
-    private void initLocalDatabaseIfEmpty() {
+
+    private void inicializarBaseLocalSeVazia() {
         if (!dataPref.getBoolean("initialized", false)) {
             List<Pet> pets = new ArrayList<>();
             pets.add(new Pet(1, "Rex", "Cachorro", "Labrador Retriever", 3, 25.5, 1, "Maria Oliveira"));
             pets.add(new Pet(2, "Mia", "Gato", "Siamês", 2, 4.2, 1, "Maria Oliveira"));
 
             List<Consulta> consultas = new ArrayList<>();
-            consultas.add(new Consulta(1, 1, "Rex", 2, "Dr. Carlos Mendes", "15/10/2026", "14:00", "Marcada", "Consulta de rotina anual"));
-            consultas.add(new Consulta(2, 2, "Mia", 2, "Dr. Carlos Mendes", "01/09/2026", "10:30", "Realizada", "Exame clínico concluído com sucesso"));
+            consultas.add(new Consulta(1, 1, "Rex", 2, "Dr. Carlos Mendes", "15/10/2026", "14:00", Consulta.STATUS_MARCADA, "Consulta de rotina anual"));
+            consultas.add(new Consulta(2, 2, "Mia", 2, "Dr. Carlos Mendes", "01/09/2026", "10:30", Consulta.STATUS_REALIZADA, "Exame clínico concluído com sucesso"));
 
             List<Vacina> vacinas = new ArrayList<>();
             vacinas.add(new Vacina(1, 1, "Antirrábica", "10/05/2026", "Dose anual", true));
@@ -72,17 +75,17 @@ public class PetCareRepository {
             historicos.add(new Historico(3, 2, "Exame dermatológico e odontológico sem alterações.", "01/09/2026"));
 
             List<Relatorio> relatorios = new ArrayList<>();
-            relatorios.add(new Relatorio(1, 1, "Rex", "Maria Oliveira",
+            relatorios.add(new Relatorio(1, 1, "Rex", "Maria Oliveira", "Dr. Carlos Mendes",
                     "PARECER CLÍNICO:\nPaciente canino, Labrador Retriever, 3 anos, 25.5 kg.\nExame físico dentro dos parâmetros de normalidade. Carteira de vacinação em dia. Recomendada manutenção de ração super premium.",
-                    "Disponivel", "10/06/2026 15:30"));
-            relatorios.add(new Relatorio(2, 2, "Mia", "Maria Oliveira",
+                    Relatorio.STATUS_DISPONIVEL, "10/06/2026 15:30"));
+            relatorios.add(new Relatorio(2, 2, "Mia", "Maria Oliveira", "Dr. Carlos Mendes",
                     "PARECER CLÍNICO:\nPaciente felino, Siamês, 2 anos, 4.2 kg.\nAusculta cardiopulmonar límpida. Hidratação e reflexos preservados.",
-                    "Disponivel", "01/09/2026 11:15"));
+                    Relatorio.STATUS_DISPONIVEL, "01/09/2026 11:15"));
 
             List<Aviso> avisos = new ArrayList<>();
-            avisos.add(new Aviso(1, "Bem-vindo ao PetCare Connect", "O sistema está ativo no seu celular! Cadastre pets e agende consultas com rapidez.", "geral", null, null, false));
-            avisos.add(new Aviso(2, "Consulta Confirmada", "Consulta de Rex confirmada para 15/10/2026 às 14:00 com Dr. Carlos Mendes.", "consulta", 1, 1, false));
-            avisos.add(new Aviso(3, "Vacina Pendente", "A vacina Giárdia de Rex está pendente para agendamento.", "pet", 1, 1, false));
+            avisos.add(new Aviso(1, "Bem-vindo ao PetCare Connect", "O sistema está ativo no seu celular! Cadastre seus pets e acompanhe consultas.", Aviso.TIPO_GERAL, null, null, false));
+            avisos.add(new Aviso(2, "Consulta Confirmada", "Consulta de Rex confirmada para 15/10/2026 às 14:00 com Dr. Carlos Mendes.", Aviso.TIPO_CONSULTA, 1, 1, false));
+            avisos.add(new Aviso(3, "Vacina Pendente", "A vacina de Giárdia do Rex está pendente para agendamento.", Aviso.TIPO_PET, 1, 1, false));
 
             salvarLista("pets", pets);
             salvarLista("consultas", consultas);
@@ -101,70 +104,69 @@ public class PetCareRepository {
 
     private <T> List<T> obterLista(String chave, Type tipo) {
         String json = dataPref.getString(chave, null);
-        if (json == null) return new ArrayList<>();
-        return gson.fromJson(json, tipo);
+        if (json == null || json.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<T> resultado = gson.fromJson(json, tipo);
+        return resultado != null ? resultado : new ArrayList<>();
     }
 
     // =========================================================================
-    // AUTENTICAÇÃO
+    // AUTENTICAÇÃO E CADASTRO EXCLUSIVOS DO TUTOR
     // =========================================================================
+
     public void login(String login, String senha, Callback<LoginResponse> callback) {
-        login(login, senha, "Tutor", callback);
-    }
-
-    public void login(String login, String senha, String perfil, Callback<LoginResponse> callback) {
         ApiService api = ApiClient.getService(context);
-        api.login(new LoginRequest(login, senha, perfil)).enqueue(new retrofit2.Callback<ApiResponse<LoginResponse>>() {
+        api.login(new LoginRequest(login, senha)).enqueue(new retrofit2.Callback<ApiResponse<LoginResponse>>() {
             @Override
             public void onResponse(Call<ApiResponse<LoginResponse>> call, Response<ApiResponse<LoginResponse>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSucesso()
                         && response.body().getDados() != null) {
-                    finalizarLogin(response.body().getDados(), callback);
+                    processarLoginComSucesso(response.body().getDados(), callback);
                     return;
                 }
-                fallbackLogin(login, senha, perfil, callback);
+                autenticarOffline(login, senha, callback);
             }
 
             @Override
             public void onFailure(Call<ApiResponse<LoginResponse>> call, Throwable t) {
-                fallbackLogin(login, senha, perfil, callback);
+                autenticarOffline(login, senha, callback);
             }
         });
     }
 
-    /** Só salva a sessão se a conta for de Tutor. */
-    private void finalizarLogin(LoginResponse data, Callback<LoginResponse> callback) {
+    public void login(String login, String senha, String perfil, Callback<LoginResponse> callback) {
+        login(login, senha, callback);
+    }
+
+    private void processarLoginComSucesso(LoginResponse data, Callback<LoginResponse> callback) {
         String perfil = data.getPerfil();
-        if (perfil != null && !"Tutor".equalsIgnoreCase(perfil.trim())) {
-            callback.onError(mensagemPerfilNaoPermitido(perfil));
+        if (perfil != null && !SessionManager.PERFIL_TUTOR.equalsIgnoreCase(perfil.trim())) {
+            callback.onError(PREFIXO_ERRO_PERFIL + " " + perfil + ". O aplicativo móvel é exclusivo para Tutores. "
+                    + "Para acessar o painel clínico ou administrativo, utilize o portal web.");
             return;
         }
-        session.salvarSessao(data.getToken(), data.getUsuarioId(), data.getNome(), data.getLogin(), "Tutor");
+        session.salvarSessao(data.getToken(), data.getUsuarioId(), data.getNome(), data.getLogin());
         callback.onSuccess(data);
     }
 
-    private String mensagemPerfilNaoPermitido(String perfil) {
-        String nome = "Admin".equalsIgnoreCase(perfil) ? "Administrador" : "Veterinário";
-        return PREFIXO_ERRO_PERFIL + " " + nome + ". Para acessar o painel de gestão, "
-                + "por favor utilize o nosso portal web em: dashboard.petcareconnect.com";
-    }
-
-    private void fallbackLogin(String login, String senha, String perfilRequerido, Callback<LoginResponse> callback) {
-        // Credenciais de teste do PIM III (modo offline)
+    private void autenticarOffline(String login, String senha, Callback<LoginResponse> callback) {
+        // Credencial de teste para homologação offline do Tutor
         if (login.equalsIgnoreCase("tutor_teste") && (senha.equals("Tutor123!") || senha.equals("123456"))) {
-            finalizarLogin(new LoginResponse("mock_token_tutor", 1, "Maria Oliveira", "tutor_teste", "Tutor"), callback);
-        } else if (login.equalsIgnoreCase("vet_teste") && (senha.equals("Vet123!") || senha.equals("123456"))) {
-            finalizarLogin(new LoginResponse("mock_token_vet", 2, "Dr. Carlos Mendes", "vet_teste", "Veterinario"), callback);
-        } else if (login.equalsIgnoreCase("admin_teste") && (senha.equals("Admin123!") || senha.equals("123456"))) {
-            finalizarLogin(new LoginResponse("mock_token_admin", 3, "Administrador PetCare", "admin_teste", "Admin"), callback);
+            LoginResponse mock = new LoginResponse("mock_token_tutor_offline", 1, "Maria Oliveira", "tutor_teste", SessionManager.PERFIL_TUTOR);
+            processarLoginComSucesso(mock, callback);
         } else {
-            callback.onError("Login ou senha inválidos.");
+            callback.onError("Usuário ou senha inválidos.");
         }
     }
 
     public void cadastrarTutor(String nome, String login, String email, String senha, Callback<Boolean> callback) {
+        cadastrarTutor(nome, login, email, senha, null, callback);
+    }
+
+    public void cadastrarTutor(String nome, String login, String email, String senha, String telefone, Callback<Boolean> callback) {
         ApiService api = ApiClient.getService(context);
-        api.cadastrar(new CadastroRequest(nome, login, email, senha)).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
+        api.cadastrar(new CadastroRequest(nome, login, email, senha, telefone)).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
             @Override
             public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
@@ -176,18 +178,19 @@ public class PetCareRepository {
 
             @Override
             public void onFailure(Call<ApiResponse<Integer>> call, Throwable t) {
-                callback.onSuccess(true); // Sucesso offline
+                callback.onSuccess(true); // Sucesso em modo offline
             }
         });
     }
 
     public void cadastrarTutor(CadastroRequest req, Callback<Boolean> callback) {
-        cadastrarTutor(req.getNome(), req.getLogin(), req.getEmail(), req.getSenha(), callback);
+        cadastrarTutor(req.getNome(), req.getLogin(), req.getEmail(), req.getSenha(), req.getTelefone(), callback);
     }
 
     // =========================================================================
-    // PETS (CRUD COM RAÇA - RF-002, RF-004)
+    // GERENCIAMENTO DE PETS (CRUD)
     // =========================================================================
+
     public void listarPets(Callback<List<Pet>> callback) {
         ApiService api = ApiClient.getService(context);
         api.listarPets().enqueue(new retrofit2.Callback<ApiResponse<List<Pet>>>() {
@@ -209,7 +212,7 @@ public class PetCareRepository {
         });
     }
 
-    private List<Pet> obterPetsLocais() {
+    public List<Pet> obterPetsLocais() {
         Type type = new TypeToken<List<Pet>>(){}.getType();
         return obterLista("pets", type);
     }
@@ -234,7 +237,9 @@ public class PetCareRepository {
 
     public void salvarPet(Pet pet, Callback<Boolean> callback) {
         List<Pet> pets = obterPetsLocais();
-        if (pet.getId() == 0) {
+        boolean isNovo = (pet.getId() == 0);
+
+        if (isNovo) {
             int novoId = pets.isEmpty() ? 1 : pets.get(pets.size() - 1).getId() + 1;
             pet.setId(novoId);
             pet.setTutorId(session.getUserId());
@@ -250,12 +255,17 @@ public class PetCareRepository {
         }
         salvarLista("pets", pets);
 
-        // Tenta sincronizar online em segundo plano
+        // Sincronização em segundo plano com a API
         ApiService api = ApiClient.getService(context);
-        if (pet.getId() > 0) {
+        if (isNovo) {
             api.criarPet(pet).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
                 @Override public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {}
                 @Override public void onFailure(Call<ApiResponse<Integer>> call, Throwable t) {}
+            });
+        } else {
+            api.atualizarPet(pet.getId(), pet).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
+                @Override public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {}
+                @Override public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {}
             });
         }
 
@@ -277,8 +287,9 @@ public class PetCareRepository {
     }
 
     // =========================================================================
-    // CONSULTAS (AGENDAMENTO, CONFLITO E CANCELAMENTO RN-001, RN-002, RN-005)
+    // CONSULTAS VETERINÁRIAS (AGENDAMENTO, REGRAS RN-002 E RN-005)
     // =========================================================================
+
     public void listarConsultas(Callback<List<Consulta>> callback) {
         ApiService api = ApiClient.getService(context);
         api.listarConsultas().enqueue(new retrofit2.Callback<ApiResponse<List<Consulta>>>() {
@@ -306,32 +317,25 @@ public class PetCareRepository {
     }
 
     /**
-     * Lista as consultas conforme o perfil logado:
-     * - Admin: todas
-     * - Veterinario: apenas as consultas dele
-     * - Tutor: apenas as consultas dos pets dele
+     * Retorna exclusivamente as consultas pertencentes aos pets do Tutor logado.
      */
     public void listarConsultasDoPerfil(Callback<List<Consulta>> callback) {
         listarConsultas(new Callback<List<Consulta>>() {
             @Override
             public void onSuccess(List<Consulta> todas) {
-                String perfil = session.getPerfil();
-                int userId = session.getUserId();
-                List<Consulta> filtradas = new ArrayList<>();
+                int tutorId = session.getUserId();
+                Set<Integer> idsDosMeusPets = new HashSet<>();
 
-                if ("Admin".equalsIgnoreCase(perfil)) {
-                    filtradas.addAll(todas);
-                } else if ("Veterinario".equalsIgnoreCase(perfil)) {
-                    for (Consulta c : todas) {
-                        if (c.getVeterinarioId() == userId) filtradas.add(c);
+                for (Pet p : obterPetsLocais()) {
+                    if (p.getTutorId() == tutorId || tutorId == 0) {
+                        idsDosMeusPets.add(p.getId());
                     }
-                } else {
-                    Set<Integer> idsDosMeusPets = new HashSet<>();
-                    for (Pet p : obterPetsLocais()) {
-                        if (p.getTutorId() == userId) idsDosMeusPets.add(p.getId());
-                    }
-                    for (Consulta c : todas) {
-                        if (idsDosMeusPets.contains(c.getPetId())) filtradas.add(c);
+                }
+
+                List<Consulta> filtradas = new ArrayList<>();
+                for (Consulta c : todas) {
+                    if (idsDosMeusPets.contains(c.getPetId()) || c.getTutorId() == tutorId) {
+                        filtradas.add(c);
                     }
                 }
                 callback.onSuccess(filtradas);
@@ -349,9 +353,9 @@ public class PetCareRepository {
 
         // RN-002: Verificação de conflito de horário
         for (Consulta c : lista) {
-            if (c.getData().equals(consulta.getData()) &&
-                    c.getHora().equals(consulta.getHora()) &&
-                    !c.getStatus().equals("Cancelada")) {
+            if (c.getData().equalsIgnoreCase(consulta.getData()) &&
+                    c.getHora().equalsIgnoreCase(consulta.getHora()) &&
+                    !c.isCancelada()) {
                 callback.onError("Horário já reservado para este veterinário (Regra RN-002).");
                 return;
             }
@@ -359,40 +363,70 @@ public class PetCareRepository {
 
         int novoId = lista.isEmpty() ? 1 : lista.get(lista.size() - 1).getId() + 1;
         consulta.setId(novoId);
-        consulta.setStatus("Marcada");
+        consulta.setStatus(Consulta.STATUS_MARCADA);
+        consulta.setTutorId(session.getUserId());
         lista.add(0, consulta);
         salvarLista("consultas", lista);
+
+        // Envio online em segundo plano
+        ApiService api = ApiClient.getService(context);
+        api.criarConsulta(consulta).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
+            @Override public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {}
+            @Override public void onFailure(Call<ApiResponse<Integer>> call, Throwable t) {}
+        });
 
         callback.onSuccess(consulta);
     }
 
+    /**
+     * Regra RN-005:
+     * - Cancelamento com >= 24h: status "Cancelada"
+     * - Cancelamento com < 24h: status "NaoCompareceu" (penalidade)
+     */
     public void cancelarConsulta(int id, Callback<Boolean> callback) {
         List<Consulta> lista = obterConsultasLocais();
         for (Consulta c : lista) {
             if (c.getId() == id) {
-                // RN-005: cancelamento com menos de 24h de antecedência → NaoCompareceu
-                //         cancelamento com 24h ou mais de antecedência → Cancelada
-                String novoStatus = "Cancelada";
-                try {
-                    String dataStr = c.getData() != null ? c.getData().trim() : "";
-                    String horaStr = c.getHora() != null ? c.getHora().trim() : "00:00";
-                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault());
-                    java.util.Date dataConsulta = sdf.parse(dataStr + " " + horaStr);
-                    if (dataConsulta != null) {
-                        long diffMs = dataConsulta.getTime() - System.currentTimeMillis();
-                        long vinteEQuatroHorasMs = 24L * 60L * 60L * 1000L;
-                        if (diffMs < vinteEQuatroHorasMs) {
-                            novoStatus = "NaoCompareceu";
-                        }
-                    }
-                } catch (Exception ignored) {}
+                String novoStatus = calcularStatusCancelamento(c.getData(), c.getHora());
                 c.setStatus(novoStatus);
                 salvarLista("consultas", lista);
+
+                // Notifica o backend online
+                ApiService api = ApiClient.getService(context);
+                api.cancelarConsulta(id).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
+                    @Override public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {}
+                    @Override public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {}
+                });
+
                 callback.onSuccess(true);
                 return;
             }
         }
         callback.onError("Consulta não encontrada.");
+    }
+
+    private String calcularStatusCancelamento(String dataStr, String horaStr) {
+        if (dataStr == null || dataStr.trim().isEmpty()) {
+            return Consulta.STATUS_CANCELADA;
+        }
+
+        try {
+            String horaFormatada = (horaStr != null && !horaStr.trim().isEmpty()) ? horaStr.trim() : "00:00";
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+            sdf.setLenient(false);
+            Date dataConsulta = sdf.parse(dataStr.trim() + " " + horaFormatada);
+
+            if (dataConsulta != null) {
+                long diffMs = dataConsulta.getTime() - System.currentTimeMillis();
+                long vinteEQuatroHorasMs = 24L * 60L * 60L * 1000L;
+                if (diffMs < vinteEQuatroHorasMs) {
+                    return Consulta.STATUS_NAO_COMPARECEU;
+                }
+            }
+        } catch (ParseException ignored) {
+            // Se houver erro de formato, adota cancelamento padrão seguro
+        }
+        return Consulta.STATUS_CANCELADA;
     }
 
     public void atualizarStatusConsulta(int id, String novoStatus, Callback<Boolean> callback) {
@@ -401,6 +435,13 @@ public class PetCareRepository {
             if (c.getId() == id) {
                 c.setStatus(novoStatus);
                 salvarLista("consultas", lista);
+
+                ApiService api = ApiClient.getService(context);
+                api.atualizarStatusConsulta(id, novoStatus, "").enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
+                    @Override public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {}
+                    @Override public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {}
+                });
+
                 callback.onSuccess(true);
                 return;
             }
@@ -409,35 +450,39 @@ public class PetCareRepository {
     }
 
     // =========================================================================
-    // VACINAS, HISTÓRICO, RELATÓRIOS E AVISOS
+    // VACINAS, HISTÓRICO, RELATÓRIOS E AVISOS DO TUTOR
     // =========================================================================
+
     public void listarTodasVacinas(Callback<List<Vacina>> callback) {
         Type typeVacina = new TypeToken<List<Vacina>>(){}.getType();
-        Type typePet    = new TypeToken<List<Pet>>(){}.getType();
+        Type typePet = new TypeToken<List<Pet>>(){}.getType();
         List<Vacina> vacinas = obterLista("vacinas", typeVacina);
-        List<Pet>    pets    = obterLista("pets",    typePet);
+        List<Pet> pets = obterLista("pets", typePet);
         preencherPetNome(vacinas, pets);
         callback.onSuccess(vacinas);
     }
 
     public void listarVacinasDoPet(int petId, Callback<List<Vacina>> callback) {
         Type typeVacina = new TypeToken<List<Vacina>>(){}.getType();
-        Type typePet    = new TypeToken<List<Pet>>(){}.getType();
+        Type typePet = new TypeToken<List<Pet>>(){}.getType();
         List<Vacina> todas = obterLista("vacinas", typeVacina);
-        List<Pet>    pets  = obterLista("pets",    typePet);
+        List<Pet> pets = obterLista("pets", typePet);
         List<Vacina> doPet = new ArrayList<>();
         for (Vacina v : todas) {
-            if (v.getPetId() == petId) doPet.add(v);
+            if (v.getPetId() == petId) {
+                doPet.add(v);
+            }
         }
         preencherPetNome(doPet, pets);
         callback.onSuccess(doPet);
     }
 
-    /** Preenche vacina.petNome buscando o nome pelo petId na lista de pets. */
     private void preencherPetNome(List<Vacina> vacinas, List<Pet> pets) {
         if (vacinas == null || pets == null) return;
         Map<Integer, String> nomePorId = new HashMap<>();
-        for (Pet p : pets) nomePorId.put(p.getId(), p.getNome());
+        for (Pet p : pets) {
+            nomePorId.put(p.getId(), p.getNome());
+        }
         for (Vacina v : vacinas) {
             if (v.getPetNome() == null || v.getPetNome().isEmpty()) {
                 String nome = nomePorId.get(v.getPetId());
@@ -455,7 +500,9 @@ public class PetCareRepository {
         List<Historico> todos = obterLista("historico", type);
         List<Historico> doPet = new ArrayList<>();
         for (Historico h : todos) {
-            if (h.getPetId() == petId) doPet.add(h);
+            if (h.getPetId() == petId) {
+                doPet.add(h);
+            }
         }
         callback.onSuccess(doPet);
     }
@@ -466,8 +513,26 @@ public class PetCareRepository {
     }
 
     public void listarAvisos(Callback<List<Aviso>> callback) {
-        Type type = new TypeToken<List<Aviso>>(){}.getType();
-        callback.onSuccess(obterLista("avisos", type));
+        ApiService api = ApiClient.getService(context);
+        api.listarAvisos().enqueue(new retrofit2.Callback<ApiResponse<List<Aviso>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<Aviso>>> call, Response<ApiResponse<List<Aviso>>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getDados() != null) {
+                    List<Aviso> remotos = response.body().getDados();
+                    salvarLista("avisos", remotos);
+                    callback.onSuccess(remotos);
+                    return;
+                }
+                Type type = new TypeToken<List<Aviso>>(){}.getType();
+                callback.onSuccess(obterLista("avisos", type));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<Aviso>>> call, Throwable t) {
+                Type type = new TypeToken<List<Aviso>>(){}.getType();
+                callback.onSuccess(obterLista("avisos", type));
+            }
+        });
     }
 
     public void marcarAvisoLido(int avisoId, Callback<Boolean> callback) {
@@ -488,6 +553,16 @@ public class PetCareRepository {
             }
         }
         salvarLista("avisos", avisos);
+
+        // Notifica backend em segundo plano
+        if (lido) {
+            ApiService api = ApiClient.getService(context);
+            api.marcarAvisoLido(avisoId).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
+                @Override public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {}
+                @Override public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {}
+            });
+        }
+
         callback.onSuccess(true);
     }
 }
