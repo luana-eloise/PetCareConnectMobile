@@ -5,6 +5,7 @@ import java.io.Serializable;
 /**
  * Resposta de sucesso na autenticação do Tutor contendo o token JWT e credenciais de sessão.
  */
+@SuppressWarnings("unused")
 public class LoginResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -12,9 +13,11 @@ public class LoginResponse implements Serializable {
     private int usuarioId;
     private String nome;
     private String login;
-    private String perfil = "Tutor";
+    private String perfil;
 
-    public LoginResponse() {}
+    public LoginResponse() {
+        this.perfil = "Tutor";
+    }
 
     public LoginResponse(String token, int usuarioId, String nome, String login, String perfil) {
         this.token = token;
@@ -24,58 +27,24 @@ public class LoginResponse implements Serializable {
         this.perfil = (perfil != null && !perfil.trim().isEmpty()) ? perfil : "Tutor";
     }
 
-    public String getToken() {
-        return token;
-    }
+    public String getToken() { return token; }
+    public void setToken(String token) { this.token = token; }
 
-    public void setToken(String token) {
-        this.token = token;
-    }
+    public int getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(int usuarioId) { this.usuarioId = usuarioId; }
 
-    public int getUsuarioId() {
-        return usuarioId;
-    }
+    public int getUserId() { return usuarioId; }
 
-    public void setUsuarioId(int usuarioId) {
-        this.usuarioId = usuarioId;
-    }
+    public String getNome() { return nome != null ? nome : ""; }
+    public void setNome(String nome) { this.nome = nome; }
 
-    /**
-     * Alias para compatibilidade com implementações de SessionManager.
-     */
-    public int getUserId() {
-        return usuarioId;
-    }
+    public String getLogin() { return login != null ? login : ""; }
+    public void setLogin(String login) { this.login = login; }
 
-    public String getNome() {
-        return nome != null ? nome : "";
-    }
+    public String getEmail() { return login; }
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+    public String getPerfil() { return perfil != null ? perfil : "Tutor"; }
+    public void setPerfil(String perfil) { this.perfil = perfil; }
 
-    public String getLogin() {
-        return login != null ? login : "";
-    }
-
-    public void setLogin(String login) {
-        this.login = login;
-    }
-
-    public String getEmail() {
-        return login;
-    }
-
-    public String getPerfil() {
-        return perfil != null ? perfil : "Tutor";
-    }
-
-    public void setPerfil(String perfil) {
-        this.perfil = perfil;
-    }
-
-    public String getRole() {
-        return getPerfil();
-    }
+    public String getRole() { return getPerfil(); }
 }

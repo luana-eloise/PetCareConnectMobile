@@ -3,21 +3,26 @@ package com.unip.petcareconnect.api;
 import com.unip.petcareconnect.model.*;
 
 import java.util.List;
-import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.http.*;
 
+/**
+ * Contrato de comunicação HTTP/REST com o Backend do PetCare Connect.
+ * Focado exclusivamente nos recursos disponíveis para o perfil de Tutor.
+ */
 public interface ApiService {
 
-    // ── AUTH ──
+    // ── AUTENTICAÇÃO E CADASTRO ──
+
     @POST("api/Auth/login")
     Call<ApiResponse<LoginResponse>> login(@Body LoginRequest req);
 
     @POST("api/Auth/cadastro")
     Call<ApiResponse<Integer>> cadastrar(@Body CadastroRequest req);
 
-    // ── PETS ──
+    // ── GERENCIAMENTO DE PETS ──
+
     @GET("api/Pets")
     Call<ApiResponse<List<Pet>>> listarPets();
 
@@ -33,7 +38,8 @@ public interface ApiService {
     @DELETE("api/Pets/{id}")
     Call<ApiResponse<Void>> removerPet(@Path("id") int id);
 
-    // ── CONSULTAS ──
+    // ── CONSULTAS VETERINÁRIAS ──
+
     @GET("api/Consultas")
     Call<ApiResponse<List<Consulta>>> listarConsultas();
 
@@ -41,12 +47,17 @@ public interface ApiService {
     Call<ApiResponse<Integer>> criarConsulta(@Body Consulta consulta);
 
     @PATCH("api/Consultas/{id}/status")
-    Call<ApiResponse<Void>> atualizarStatusConsulta(@Path("id") int id, @Query("status") String status, @Query("obs") String obs);
+    Call<ApiResponse<Void>> atualizarStatusConsulta(
+            @Path("id") int id,
+            @Query("status") String status,
+            @Query("obs") String obs
+    );
 
     @POST("api/Consultas/{id}/cancelar")
     Call<ApiResponse<Void>> cancelarConsulta(@Path("id") int id);
 
-    // ── VACINAS ──
+    // ── CARTEIRA DE VACINAS ──
+
     @GET("api/Vacinas/{petId}")
     Call<ApiResponse<List<Vacina>>> listarVacinas(@Path("petId") int petId);
 
@@ -54,30 +65,30 @@ public interface ApiService {
     Call<ApiResponse<Integer>> criarVacina(@Body Vacina vacina);
 
     @PATCH("api/Vacinas/{id}/aplicar")
-    Call<ApiResponse<Void>> aplicarVacina(@Path("id") int id, @Query("data") String data, @Query("obs") String obs);
+    Call<ApiResponse<Void>> aplicarVacina(
+            @Path("id") int id,
+            @Query("data") String data,
+            @Query("obs") String obs
+    );
 
-    // ── HISTÓRICO ──
+    // ── HISTÓRICO CLÍNICO DO PET ──
+
     @GET("api/Historico/{petId}")
     Call<ApiResponse<List<Historico>>> listarHistorico(@Path("petId") int petId);
 
     @POST("api/Historico")
     Call<ApiResponse<Integer>> adicionarHistorico(@Body Historico historico);
 
-    // ── RELATÓRIOS ──
+    // ── PRONTUÁRIOS E LAUDOS CLÍNICOS ──
+
     @GET("api/Relatorios")
     Call<ApiResponse<List<Relatorio>>> listarRelatorios(@Query("petId") Integer petId);
 
-    @POST("api/Relatorios")
-    Call<ApiResponse<Void>> salvarRelatorio(@Body Relatorio relatorio);
+    // ── AVISOS E NOTIFICAÇÕES ──
 
-    // ── AVISOS ──
     @GET("api/Avisos")
     Call<ApiResponse<List<Aviso>>> listarAvisos();
 
     @POST("api/Avisos/{id}/lido")
     Call<ApiResponse<Void>> marcarAvisoLido(@Path("id") int id);
-
-    // ── ADMIN ──
-    @GET("api/Admin/estatisticas")
-    Call<ApiResponse<Map<String, Integer>>> obterEstatisticas();
 }

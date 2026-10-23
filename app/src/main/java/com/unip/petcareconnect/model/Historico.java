@@ -6,6 +6,7 @@ import java.util.Objects;
 /**
  * Registra um evento relevante na linha do tempo clínica do pet.
  */
+@SuppressWarnings("unused")
 public class Historico implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -23,37 +24,17 @@ public class Historico implements Serializable {
         this.dataEvento = dataEvento != null ? dataEvento.trim() : "";
     }
 
-    public int getId() {
-        return id;
-    }
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    public int getPetId() { return petId; }
+    public void setPetId(int petId) { this.petId = petId; }
 
-    public int getPetId() {
-        return petId;
-    }
+    public String getDescricao() { return descricao != null ? descricao : ""; }
+    public void setDescricao(String descricao) { this.descricao = descricao != null ? descricao.trim() : ""; }
 
-    public void setPetId(int petId) {
-        this.petId = petId;
-    }
-
-    public String getDescricao() {
-        return descricao != null ? descricao : "";
-    }
-
-    public void setDescricao(String descricao) {
-        this.descricao = descricao != null ? descricao.trim() : "";
-    }
-
-    public String getDataEvento() {
-        return dataEvento != null ? dataEvento : "";
-    }
-
-    public void setDataEvento(String dataEvento) {
-        this.dataEvento = dataEvento != null ? dataEvento.trim() : "";
-    }
+    public String getDataEvento() { return dataEvento != null ? dataEvento : ""; }
+    public void setDataEvento(String dataEvento) { this.dataEvento = dataEvento != null ? dataEvento.trim() : ""; }
 
     @Override
     public boolean equals(Object o) {

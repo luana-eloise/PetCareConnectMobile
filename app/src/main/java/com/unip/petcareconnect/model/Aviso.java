@@ -7,6 +7,7 @@ import java.util.Objects;
 /**
  * Notificação ou comunicado enviado pela clínica ou sistema para o Tutor.
  */
+@SuppressWarnings("unused")
 public class Aviso implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -21,7 +22,7 @@ public class Aviso implements Serializable {
     @SerializedName(value = "texto", alternate = {"mensagem"})
     private String texto;
 
-    private String tipo = TIPO_GERAL; // 'geral', 'tutor', 'pet', 'consulta'
+    private String tipo;
     private Integer tutorId;
     private Integer petId;
     private String data;
@@ -41,81 +42,36 @@ public class Aviso implements Serializable {
         this.lido = lido;
     }
 
-    public int getId() {
-        return id;
-    }
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    public String getTitulo() { return titulo != null ? titulo : ""; }
+    public void setTitulo(String titulo) { this.titulo = titulo != null ? titulo.trim() : ""; }
 
-    public String getTitulo() {
-        return titulo != null ? titulo : "";
-    }
+    public String getTexto() { return texto != null ? texto : ""; }
+    public void setTexto(String texto) { this.texto = texto != null ? texto.trim() : ""; }
 
-    public void setTitulo(String titulo) {
-        this.titulo = titulo != null ? titulo.trim() : "";
-    }
-
-    public String getTexto() {
-        return texto != null ? texto : "";
-    }
-
-    public void setTexto(String texto) {
-        this.texto = texto != null ? texto.trim() : "";
-    }
-
-    public String getTipo() {
-        return tipo != null ? tipo : TIPO_GERAL;
-    }
-
+    public String getTipo() { return tipo != null ? tipo : TIPO_GERAL; }
     public void setTipo(String tipo) {
         this.tipo = (tipo != null && !tipo.trim().isEmpty()) ? tipo.trim() : TIPO_GERAL;
     }
 
-    public String getPrioridade() {
-        return getTipo();
-    }
+    public String getPrioridade() { return getTipo(); }
 
-    public Integer getTutorId() {
-        return tutorId;
-    }
+    public Integer getTutorId() { return tutorId; }
+    public void setTutorId(Integer tutorId) { this.tutorId = tutorId; }
 
-    public void setTutorId(Integer tutorId) {
-        this.tutorId = tutorId;
-    }
+    public Integer getPetId() { return petId; }
+    public void setPetId(Integer petId) { this.petId = petId; }
 
-    public Integer getPetId() {
-        return petId;
-    }
+    public String getData() { return data != null ? data : ""; }
+    public void setData(String data) { this.data = data != null ? data.trim() : ""; }
 
-    public void setPetId(Integer petId) {
-        this.petId = petId;
-    }
+    public String getMensagem() { return getTexto(); }
+    public void setMensagem(String mensagem) { setTexto(mensagem); }
 
-    public String getData() {
-        return data != null ? data : "";
-    }
-
-    public void setData(String data) {
-        this.data = data != null ? data.trim() : "";
-    }
-
-    public String getMensagem() {
-        return getTexto();
-    }
-
-    public void setMensagem(String mensagem) {
-        setTexto(mensagem);
-    }
-
-    public boolean isLido() {
-        return lido;
-    }
-
-    public void setLido(boolean lido) {
-        this.lido = lido;
-    }
+    public boolean isLido() { return lido; }
+    public void setLido(boolean lido) { this.lido = lido; }
 
     @Override
     public boolean equals(Object o) {

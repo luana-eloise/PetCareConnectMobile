@@ -4,8 +4,9 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * Representa um registro do calendário vacinal do pet do Tutor.
+ * Registra um registro do calendário vacinal do pet do Tutor.
  */
+@SuppressWarnings("unused")
 public class Vacina implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -45,85 +46,35 @@ public class Vacina implements Serializable {
         this.aplicada = aplicada;
     }
 
-    public int getId() {
-        return id;
-    }
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    public int getPetId() { return petId; }
+    public void setPetId(int petId) { this.petId = petId; }
 
-    public int getPetId() {
-        return petId;
-    }
+    public String getNome() { return nome != null ? nome : ""; }
+    public void setNome(String nome) { this.nome = nome != null ? nome.trim() : ""; }
 
-    public void setPetId(int petId) {
-        this.petId = petId;
-    }
+    public String getDataAplicacao() { return dataAplicacao; }
+    public void setDataAplicacao(String dataAplicacao) { this.dataAplicacao = dataAplicacao != null ? dataAplicacao.trim() : null; }
 
-    public String getNome() {
-        return nome != null ? nome : "";
-    }
+    public String getObservacao() { return observacao; }
+    public void setObservacao(String observacao) { this.observacao = observacao != null ? observacao.trim() : null; }
 
-    public void setNome(String nome) {
-        this.nome = nome != null ? nome.trim() : "";
-    }
+    public boolean isAplicada() { return aplicada; }
+    public void setAplicada(boolean aplicada) { this.aplicada = aplicada; }
 
-    public String getDataAplicacao() {
-        return dataAplicacao;
-    }
+    public String getPetNome() { return petNome != null ? petNome : ""; }
+    public void setPetNome(String petNome) { this.petNome = petNome != null ? petNome.trim() : ""; }
 
-    public void setDataAplicacao(String dataAplicacao) {
-        this.dataAplicacao = dataAplicacao != null ? dataAplicacao.trim() : null;
-    }
+    public String getDose() { return dose != null ? dose : ""; }
+    public void setDose(String dose) { this.dose = dose; }
 
-    public String getObservacao() {
-        return observacao;
-    }
+    public String getLote() { return lote != null ? lote : ""; }
+    public void setLote(String lote) { this.lote = lote; }
 
-    public void setObservacao(String observacao) {
-        this.observacao = observacao != null ? observacao.trim() : null;
-    }
-
-    public boolean isAplicada() {
-        return aplicada;
-    }
-
-    public void setAplicada(boolean aplicada) {
-        this.aplicada = aplicada;
-    }
-
-    public String getPetNome() {
-        return petNome != null ? petNome : "";
-    }
-
-    public void setPetNome(String petNome) {
-        this.petNome = petNome != null ? petNome.trim() : "";
-    }
-
-    public String getDose() {
-        return dose != null ? dose : "";
-    }
-
-    public void setDose(String dose) {
-        this.dose = dose;
-    }
-
-    public String getLote() {
-        return lote != null ? lote : "";
-    }
-
-    public void setLote(String lote) {
-        this.lote = lote;
-    }
-
-    public String getProximaDose() {
-        return proximaDose;
-    }
-
-    public void setProximaDose(String proximaDose) {
-        this.proximaDose = proximaDose;
-    }
+    public String getProximaDose() { return proximaDose; }
+    public void setProximaDose(String proximaDose) { this.proximaDose = proximaDose; }
 
     public String getVeterinarioNome() {
         return (veterinarioNome != null && !veterinarioNome.trim().isEmpty()) ? veterinarioNome : "Clínica PetCare";
@@ -133,15 +84,9 @@ public class Vacina implements Serializable {
         this.veterinarioNome = veterinarioNome;
     }
 
-    // ── Auxiliares de Domínio ──
+    public boolean isPendente() { return !aplicada; }
 
-    public boolean isPendente() {
-        return !aplicada;
-    }
-
-    public String getStatusDescricao() {
-        return aplicada ? "Aplicada" : "Pendente";
-    }
+    public String getStatusDescricao() { return aplicada ? "Aplicada" : "Pendente"; }
 
     @Override
     public boolean equals(Object o) {

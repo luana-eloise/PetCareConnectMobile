@@ -7,6 +7,7 @@ import java.io.Serializable;
  *
  * @param <T> Tipo do payload de dados retornado.
  */
+@SuppressWarnings("unused")
 public class ApiResponse<T> implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -22,27 +23,12 @@ public class ApiResponse<T> implements Serializable {
         this.dados = dados;
     }
 
-    public boolean isSucesso() {
-        return sucesso;
-    }
+    public boolean isSucesso() { return sucesso; }
+    public void setSucesso(boolean sucesso) { this.sucesso = sucesso; }
 
-    public void setSucesso(boolean sucesso) {
-        this.sucesso = sucesso;
-    }
+    public String getMensagem() { return mensagem != null ? mensagem : ""; }
+    public void setMensagem(String mensagem) { this.mensagem = mensagem != null ? mensagem.trim() : ""; }
 
-    public String getMensagem() {
-        return mensagem != null ? mensagem : "";
-    }
-
-    public void setMensagem(String mensagem) {
-        this.mensagem = mensagem != null ? mensagem.trim() : "";
-    }
-
-    public T getDados() {
-        return dados;
-    }
-
-    public void setDados(T dados) {
-        this.dados = dados;
-    }
+    public T getDados() { return dados; }
+    public void setDados(T dados) { this.dados = dados; }
 }

@@ -11,45 +11,76 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-public class ApiClient {
-    private static Retrofit retrofit = null;
+/**
+ * Provedor Singleton do cliente HTTP Retrofit configurado para a API do PetCare Connect.
+ * Implementa interceptor dinâmico de autenticação JWT, timeouts otimizados e thread-safety.
+ */
+public final class ApiClient {
 
-    public static ApiService getService(Context context) {
-        if (retrofit == null) {
-            SessionManager session = new SessionManager(context);
-            String baseUrl = session.getBaseUrl();
+    private static final int TIMEOUT_SECONDS = 15;
+    private static volatile Retrofit retrofitInstance;
+    private static volatile ApiService apiServiceInstance;
 
-            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel(HttpLoggingInterceptor.Level.BODY);
-
-            OkHttpClient client = new OkHttpClient.Builder()
-                    .connectTimeout(5, TimeUnit.SECONDS)
-                    .readTimeout(5, TimeUnit.SECONDS)
-                    .writeTimeout(5, TimeUnit.SECONDS)
-                    .addInterceptor(logging)
-                    .addInterceptor(chain -> {
-                        Request original = chain.request();
-                        String token = session.getToken();
-
-                        Request.Builder builder = original.newBuilder();
-                        if (token != null && !token.isEmpty()) {
-                            builder.header("Authorization", "Bearer " + token);
-                        }
-                        builder.header("Content-Type", "application/json");
-                        return chain.proceed(builder.build());
-                    })
-                    .build();
-
-            retrofit = new Retrofit.Builder()
-                    .baseUrl(baseUrl)
-                    .client(client)
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
-        }
-        return retrofit.create(ApiService.class);
+    private ApiClient() {
+        // Construtor privado para evitar instanciação direta (Padrão Utility/Singleton)
     }
 
-    public static void reset() {
-        retrofit = null;
+    /**
+     * Retorna a instância única do serviço da API, configurando o Retrofit de forma thread-safe.
+     *
+     * @param context Contexto da aplicação Android.
+     * @return Instância configurada de {@link ApiService}.
+     */
+    public static ApiService getService(Context context) {
+        if (apiServiceInstance == null) {
+            synchronized (ApiClient.class) {
+                if (apiServiceInstance == null) {
+                    Context appContext = context.getApplicationContext();
+                    SessionManager session = new SessionManager(appContext);
+                    String baseUrl = session.getBaseUrl();
+
+                    HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+                    logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+
+                    OkHttpClient client = new OkHttpClient.Builder()
+                            .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                            .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                            .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                            .addInterceptor(logging)
+                            .addInterceptor(chain -> {
+                                Request original = chain.request();
+                                Request.Builder builder = original.newBuilder()
+                                        .header("Content-Type", "application/json")
+                                        .header("Accept", "application/json");
+
+                                // Lê o token dinamicamente a cada requisição
+                                String token = session.getToken();
+                                if (token != null && !token.trim().isEmpty()) {
+                                    builder.header("Authorization", "Bearer " + token.trim());
+                                }
+
+                                return chain.proceed(builder.build());
+                            })
+                            .build();
+
+                    retrofitInstance = new Retrofit.Builder()
+                            .baseUrl(baseUrl)
+                            .client(client)
+                            .addConverterFactory(GsonConverterFactory.create())
+                            .build();
+
+                    apiServiceInstance = retrofitInstance.create(ApiService.class);
+                }
+            }
+        }
+        return apiServiceInstance;
+    }
+
+    /**
+     * Reseta as instâncias do cliente (ex: quando o IP do servidor ou a BaseURL são alterados nas configurações).
+     */
+    public static synchronized void reset() {
+        retrofitInstance = null;
+        apiServiceInstance = null;
     }
 }

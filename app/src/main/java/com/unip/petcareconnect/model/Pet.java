@@ -8,6 +8,7 @@ import java.util.Objects;
 /**
  * Representa o animal de estimação vinculado ao Tutor autenticado.
  */
+@SuppressWarnings("unused")
 public class Pet implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -41,98 +42,38 @@ public class Pet implements Serializable {
         this.ativo = true;
     }
 
-    public int getId() {
-        return id;
-    }
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    public String getNome() { return nome != null ? nome : ""; }
+    public void setNome(String nome) { this.nome = nome != null ? nome.trim() : ""; }
 
-    public String getNome() {
-        return nome != null ? nome : "";
-    }
+    public String getEspecie() { return especie != null ? especie : ""; }
+    public void setEspecie(String especie) { this.especie = especie != null ? especie.trim() : ""; }
 
-    public void setNome(String nome) {
-        this.nome = nome != null ? nome.trim() : "";
-    }
+    public String getTipo() { return getEspecie(); }
+    public void setTipo(String tipo) { setEspecie(tipo); }
 
-    public String getEspecie() {
-        return especie != null ? especie : "";
-    }
+    public String getRaca() { return (raca != null && !raca.trim().isEmpty()) ? raca : "SRD"; }
+    public void setRaca(String raca) { this.raca = (raca != null && !raca.trim().isEmpty()) ? raca.trim() : "SRD"; }
 
-    public void setEspecie(String especie) {
-        this.especie = especie != null ? especie.trim() : "";
-    }
+    public int getIdade() { return idade; }
+    public void setIdade(int idade) { this.idade = Math.max(0, idade); }
 
-    /**
-     * Alias para compatibilidade com layouts legados que usam getTipo().
-     */
-    public String getTipo() {
-        return getEspecie();
-    }
+    public double getPeso() { return peso; }
+    public void setPeso(double peso) { this.peso = Math.max(0.0, peso); }
 
-    public void setTipo(String tipo) {
-        setEspecie(tipo);
-    }
+    public int getTutorId() { return tutorId; }
+    public void setTutorId(int tutorId) { this.tutorId = tutorId; }
 
-    public String getRaca() {
-        return (raca != null && !raca.trim().isEmpty()) ? raca : "SRD";
-    }
+    public String getTutorNome() { return tutorNome != null ? tutorNome : ""; }
+    public void setTutorNome(String tutorNome) { this.tutorNome = tutorNome != null ? tutorNome.trim() : ""; }
 
-    public void setRaca(String raca) {
-        this.raca = (raca != null && !raca.trim().isEmpty()) ? raca.trim() : "SRD";
-    }
+    public String getCriadoEm() { return criadoEm; }
+    public void setCriadoEm(String criadoEm) { this.criadoEm = criadoEm; }
 
-    public int getIdade() {
-        return idade;
-    }
-
-    public void setIdade(int idade) {
-        this.idade = Math.max(0, idade);
-    }
-
-    public double getPeso() {
-        return peso;
-    }
-
-    public void setPeso(double peso) {
-        this.peso = Math.max(0.0, peso);
-    }
-
-    public int getTutorId() {
-        return tutorId;
-    }
-
-    public void setTutorId(int tutorId) {
-        this.tutorId = tutorId;
-    }
-
-    public String getTutorNome() {
-        return tutorNome != null ? tutorNome : "";
-    }
-
-    public void setTutorNome(String tutorNome) {
-        this.tutorNome = tutorNome != null ? tutorNome.trim() : "";
-    }
-
-    public String getCriadoEm() {
-        return criadoEm;
-    }
-
-    public void setCriadoEm(String criadoEm) {
-        this.criadoEm = criadoEm;
-    }
-
-    public boolean isAtivo() {
-        return ativo;
-    }
-
-    public void setAtivo(boolean ativo) {
-        this.ativo = ativo;
-    }
-
-    // ── Métodos Utilitários de Domínio ──
+    public boolean isAtivo() { return ativo; }
+    public void setAtivo(boolean ativo) { this.ativo = ativo; }
 
     public String getPesoFormatado() {
         return String.format(Locale.getDefault(), "%.1f kg", peso);
