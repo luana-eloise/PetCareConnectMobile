@@ -1,59 +1,132 @@
 package com.unip.petcareconnect.model;
 
+import com.google.gson.annotations.SerializedName;
 import java.io.Serializable;
+import java.util.Objects;
 
+/**
+ * Notificação ou comunicado enviado pela clínica ou sistema para o Tutor.
+ */
 public class Aviso implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public static final String TIPO_GERAL = "geral";
+    public static final String TIPO_TUTOR = "tutor";
+    public static final String TIPO_PET = "pet";
+    public static final String TIPO_CONSULTA = "consulta";
+
     private int id;
     private String titulo;
+
+    @SerializedName(value = "texto", alternate = {"mensagem"})
     private String texto;
-    private String tipo; // 'geral', 'tutor', 'pet', 'consulta'
+
+    private String tipo = TIPO_GERAL; // 'geral', 'tutor', 'pet', 'consulta'
     private Integer tutorId;
     private Integer petId;
+    private String data;
     private boolean lido;
 
-    public Aviso() {}
+    public Aviso() {
+        this.tipo = TIPO_GERAL;
+    }
 
     public Aviso(int id, String titulo, String texto, String tipo, Integer tutorId, Integer petId, boolean lido) {
         this.id = id;
-        this.titulo = titulo;
-        this.texto = texto;
-        this.tipo = tipo;
+        this.titulo = titulo != null ? titulo.trim() : "";
+        this.texto = texto != null ? texto.trim() : "";
+        this.tipo = (tipo != null && !tipo.trim().isEmpty()) ? tipo.trim() : TIPO_GERAL;
         this.tutorId = tutorId;
         this.petId = petId;
         this.lido = lido;
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public int getId() {
+        return id;
+    }
 
-    public String getTitulo() { return titulo; }
-    public void setTitulo(String titulo) { this.titulo = titulo; }
+    public void setId(int id) {
+        this.id = id;
+    }
 
-    public String getTexto() { return texto; }
-    public void setTexto(String texto) { this.texto = texto; }
+    public String getTitulo() {
+        return titulo != null ? titulo : "";
+    }
 
-    public String getTipo() { return tipo; }
-    public void setTipo(String tipo) { this.tipo = tipo; }
+    public void setTitulo(String titulo) {
+        this.titulo = titulo != null ? titulo.trim() : "";
+    }
+
+    public String getTexto() {
+        return texto != null ? texto : "";
+    }
+
+    public void setTexto(String texto) {
+        this.texto = texto != null ? texto.trim() : "";
+    }
+
+    public String getTipo() {
+        return tipo != null ? tipo : TIPO_GERAL;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = (tipo != null && !tipo.trim().isEmpty()) ? tipo.trim() : TIPO_GERAL;
+    }
 
     public String getPrioridade() {
-        return tipo;
+        return getTipo();
     }
 
-    public Integer getTutorId() { return tutorId; }
-    public void setTutorId(Integer tutorId) { this.tutorId = tutorId; }
+    public Integer getTutorId() {
+        return tutorId;
+    }
 
-    // Returns the date of the notice; not stored in current model, returns empty string for now
+    public void setTutorId(Integer tutorId) {
+        this.tutorId = tutorId;
+    }
+
+    public Integer getPetId() {
+        return petId;
+    }
+
+    public void setPetId(Integer petId) {
+        this.petId = petId;
+    }
+
     public String getData() {
-        return ""; // placeholder – no date field defined
+        return data != null ? data : "";
     }
 
-    // Alias for texto field – provides the message content
+    public void setData(String data) {
+        this.data = data != null ? data.trim() : "";
+    }
+
     public String getMensagem() {
-        return texto;
+        return getTexto();
     }
 
-    public void setPetId(Integer petId) { this.petId = petId; }
+    public void setMensagem(String mensagem) {
+        setTexto(mensagem);
+    }
 
-    public boolean isLido() { return lido; }
-    public void setLido(boolean lido) { this.lido = lido; }
+    public boolean isLido() {
+        return lido;
+    }
+
+    public void setLido(boolean lido) {
+        this.lido = lido;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Aviso aviso = (Aviso) o;
+        return id == aviso.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }

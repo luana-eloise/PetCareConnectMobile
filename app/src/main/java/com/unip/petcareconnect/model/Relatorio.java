@@ -1,76 +1,165 @@
 package com.unip.petcareconnect.model;
 
+import com.google.gson.annotations.SerializedName;
 import java.io.Serializable;
+import java.util.Objects;
 
+/**
+ * Representa o prontuário ou laudo clínico emitido para o pet do Tutor.
+ */
 public class Relatorio implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public static final String STATUS_DISPONIVEL = "Disponivel";
+    public static final String STATUS_PENDENTE = "Pendente";
+
     private int id;
     private int petId;
     private String petNome;
     private String tutorNome;
+    private String veterinarioNome;
+
+    @SerializedName(value = "texto", alternate = {"diagnostico"})
     private String texto;
-    private String status; // 'Disponivel' | 'Pendente'
+
+    private String status = STATUS_DISPONIVEL; // 'Disponivel' | 'Pendente'
+
+    @SerializedName(value = "atualizacao", alternate = {"dataEmissao"})
     private String atualizacao;
 
-    public Relatorio() {}
+    private String conduta;
+
+    public Relatorio() {
+        this.status = STATUS_DISPONIVEL;
+    }
 
     public Relatorio(int id, int petId, String petNome, String tutorNome, String texto, String status, String atualizacao) {
         this.id = id;
         this.petId = petId;
-        this.petNome = petNome;
-        this.tutorNome = tutorNome;
-        this.texto = texto;
-        this.status = status;
-        this.atualizacao = atualizacao;
+        this.petNome = petNome != null ? petNome.trim() : "";
+        this.tutorNome = tutorNome != null ? tutorNome.trim() : "";
+        this.texto = texto != null ? texto.trim() : "";
+        this.status = (status != null && !status.trim().isEmpty()) ? status.trim() : STATUS_DISPONIVEL;
+        this.atualizacao = atualizacao != null ? atualizacao.trim() : "";
+        this.veterinarioNome = "Clínica PetCare";
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
-
-    public int getPetId() { return petId; }
-    public void setPetId(int petId) { this.petId = petId; }
-
-    public String getPetNome() { return petNome; }
-    public void setPetNome(String petNome) { this.petNome = petNome; }
-
-    public String getTutorNome() { return tutorNome; }
-    public void setTutorNome(String tutorNome) { this.tutorNome = tutorNome; }
-
-    public String getTexto() { return texto; }
-    public void setTexto(String texto) { this.texto = texto; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-
-    public String getAtualizacao() { return atualizacao; }
-    // Compatibility getters for UI expectations
-    // Tipo corresponds to the status of the report (e.g., "Disponivel")
-    public String getTipo() {
-        return status;
+    public Relatorio(int id, int petId, String petNome, String tutorNome, String veterinarioNome, String texto, String status, String atualizacao) {
+        this.id = id;
+        this.petId = petId;
+        this.petNome = petNome != null ? petNome.trim() : "";
+        this.tutorNome = tutorNome != null ? tutorNome.trim() : "";
+        this.veterinarioNome = (veterinarioNome != null && !veterinarioNome.trim().isEmpty()) ? veterinarioNome.trim() : "Clínica PetCare";
+        this.texto = texto != null ? texto.trim() : "";
+        this.status = (status != null && !status.trim().isEmpty()) ? status.trim() : STATUS_DISPONIVEL;
+        this.atualizacao = atualizacao != null ? atualizacao.trim() : "";
     }
 
-    // Data de emissão corresponds to the atualizacao field
-    public String getDataEmissao() {
-        return atualizacao;
+    public int getId() {
+        return id;
     }
 
-    // Veterinário responsável corresponds to tutorNome (the vet who authored the report)
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getPetId() {
+        return petId;
+    }
+
+    public void setPetId(int petId) {
+        this.petId = petId;
+    }
+
+    public String getPetNome() {
+        return petNome != null ? petNome : "";
+    }
+
+    public void setPetNome(String petNome) {
+        this.petNome = petNome != null ? petNome.trim() : "";
+    }
+
+    public String getTutorNome() {
+        return tutorNome != null ? tutorNome : "";
+    }
+
+    public void setTutorNome(String tutorNome) {
+        this.tutorNome = tutorNome != null ? tutorNome.trim() : "";
+    }
+
+    public String getTexto() {
+        return texto != null ? texto : "";
+    }
+
+    public void setTexto(String texto) {
+        this.texto = texto != null ? texto.trim() : "";
+    }
+
+    public String getStatus() {
+        return status != null ? status : STATUS_DISPONIVEL;
+    }
+
+    public void setStatus(String status) {
+        this.status = (status != null && !status.trim().isEmpty()) ? status.trim() : STATUS_DISPONIVEL;
+    }
+
+    public String getAtualizacao() {
+        return atualizacao != null ? atualizacao : "";
+    }
+
+    public void setAtualizacao(String atualizacao) {
+        this.atualizacao = atualizacao != null ? atualizacao.trim() : "";
+    }
+
     public String getVeterinarioNome() {
-        return tutorNome;
+        if (veterinarioNome != null && !veterinarioNome.trim().isEmpty()) {
+            return veterinarioNome;
+        }
+        return "Clínica PetCare";
     }
 
-    // Diagnóstico is the main text of the report
+    public void setVeterinarioNome(String veterinarioNome) {
+        this.veterinarioNome = veterinarioNome != null ? veterinarioNome.trim() : "Clínica PetCare";
+    }
+
+    public String getTipo() {
+        return getStatus();
+    }
+
+    public String getDataEmissao() {
+        return getAtualizacao();
+    }
+
     public String getDiagnostico() {
-        return texto;
+        return getTexto();
     }
 
-    // Conduta may be optional; return empty string if not provided
     public String getConduta() {
-        return ""; // placeholder – no separate field defined
+        return conduta != null ? conduta : "";
     }
 
-    // Título para exibição no diálogo – use a generic label
+    public void setConduta(String conduta) {
+        this.conduta = conduta;
+    }
+
     public String getTitulo() {
         return "Laudo Clínico";
     }
 
+    public boolean isDisponivel() {
+        return STATUS_DISPONIVEL.equalsIgnoreCase(status);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Relatorio relatorio = (Relatorio) o;
+        return id == relatorio.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }

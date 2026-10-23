@@ -1,45 +1,120 @@
 package com.unip.petcareconnect.model;
 
 import java.io.Serializable;
+import java.util.Objects;
 
+/**
+ * Representa o Tutor autenticado no aplicativo PetCare Connect Mobile.
+ * Centraliza os dados de identificação, contato e perfil exclusivo de Tutor.
+ */
 public class Usuario implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public static final String PERFIL_PADRAO = "Tutor";
+
     private int id;
     private String nome;
     private String login;
-    private String perfil;
     private String email;
     private String telefone;
-    private boolean ativo;
+    private String perfil = PERFIL_PADRAO;
+    private boolean ativo = true;
 
-    public Usuario() {}
+    public Usuario() {
+        this.perfil = PERFIL_PADRAO;
+        this.ativo = true;
+    }
 
-    public Usuario(int id, String nome, String login, String perfil, String email, boolean ativo) {
+    public Usuario(int id, String nome, String login, String email, String telefone, boolean ativo) {
+        this(id, nome, login, PERFIL_PADRAO, email, telefone, ativo);
+    }
+
+    public Usuario(int id, String nome, String login, String perfil, String email, String telefone, boolean ativo) {
         this.id = id;
-        this.nome = nome;
-        this.login = login;
-        this.perfil = perfil;
-        this.email = email;
+        this.nome = nome != null ? nome.trim() : "";
+        this.login = login != null ? login.trim().toLowerCase() : "";
+        this.perfil = (perfil != null && !perfil.trim().isEmpty()) ? perfil.trim() : PERFIL_PADRAO;
+        this.email = email != null ? email.trim().toLowerCase() : null;
+        this.telefone = telefone != null ? telefone.trim() : null;
         this.ativo = ativo;
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public int getId() {
+        return id;
+    }
 
-    public String getNome() { return nome; }
-    public void setNome(String nome) { this.nome = nome; }
+    public void setId(int id) {
+        this.id = id;
+    }
 
-    public String getLogin() { return login; }
-    public void setLogin(String login) { this.login = login; }
+    public String getNome() {
+        return nome != null ? nome : "";
+    }
 
-    public String getPerfil() { return perfil; }
-    public void setPerfil(String perfil) { this.perfil = perfil; }
+    public void setNome(String nome) {
+        this.nome = nome != null ? nome.trim() : "";
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getLogin() {
+        return login != null ? login : "";
+    }
 
-    public String getTelefone() { return telefone; }
-    public void setTelefone(String telefone) { this.telefone = telefone; }
+    public void setLogin(String login) {
+        this.login = login != null ? login.trim().toLowerCase() : "";
+    }
 
-    public boolean isAtivo() { return ativo; }
-    public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    public String getPerfil() {
+        return perfil != null ? perfil : PERFIL_PADRAO;
+    }
+
+    public void setPerfil(String perfil) {
+        this.perfil = (perfil != null && !perfil.trim().isEmpty()) ? perfil.trim() : PERFIL_PADRAO;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email != null ? email.trim().toLowerCase() : null;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone != null ? telefone.trim() : null;
+    }
+
+    public boolean isAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(boolean ativo) {
+        this.ativo = ativo;
+    }
+
+    public boolean isTutor() {
+        return true;
+    }
+
+    public String getPrimeiroNome() {
+        if (nome == null || nome.trim().isEmpty()) return "";
+        String[] partes = nome.trim().split("\\s+");
+        return partes[0];
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Usuario usuario = (Usuario) o;
+        return id == usuario.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }
