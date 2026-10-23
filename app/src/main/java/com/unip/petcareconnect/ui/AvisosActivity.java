@@ -22,9 +22,12 @@ import com.unip.petcareconnect.repository.PetCareRepository;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Tela de Avisos e Lembretes do Tutor.
+ * Exibe notificações da clínica e permite marcar como lido/não lido.
+ */
 public class AvisosActivity extends AppCompatActivity {
 
-    private Toolbar toolbar;
     private RecyclerView rvAvisos;
     private SwipeRefreshLayout swipeRefresh;
     private ProgressBar progressBar;
@@ -41,10 +44,10 @@ public class AvisosActivity extends AppCompatActivity {
 
         repository = new PetCareRepository(this);
 
-        toolbar = findViewById(R.id.toolbar);
-        rvAvisos = findViewById(R.id.rvAvisos);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        rvAvisos     = findViewById(R.id.rvAvisos);
         swipeRefresh = findViewById(R.id.swipeRefresh);
-        progressBar = findViewById(R.id.progressBar);
+        progressBar  = findViewById(R.id.progressBar);
         tvEmptyState = findViewById(R.id.tvEmptyState);
 
         setSupportActionBar(toolbar);
@@ -57,19 +60,14 @@ public class AvisosActivity extends AppCompatActivity {
         rvAvisos.setLayoutManager(new LinearLayoutManager(this));
         adapter = new AvisoAdapter(avisoList, new AvisoAdapter.OnAvisoActionListener() {
             @Override
-            public void onToggleLido(Aviso aviso) {
-                alternarStatusLido(aviso);
-            }
+            public void onToggleLido(Aviso aviso) { alternarStatusLido(aviso); }
 
             @Override
-            public void onAvisoClick(Aviso aviso) {
-                mostrarDetalhesAviso(aviso);
-            }
+            public void onAvisoClick(Aviso aviso) { mostrarDetalhesAviso(aviso); }
         });
         rvAvisos.setAdapter(adapter);
 
         swipeRefresh.setOnRefreshListener(this::carregarAvisos);
-
         carregarAvisos();
     }
 
@@ -112,11 +110,12 @@ public class AvisosActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onError(String message) {}
+            public void onError(String message) { /* falha silenciosa — UI já foi atualizada */ }
         });
     }
 
     private void mostrarDetalhesAviso(Aviso aviso) {
+        // Marca automaticamente como lido ao abrir detalhes
         if (!aviso.isLido()) {
             aviso.setLido(true);
             adapter.notifyDataSetChanged();
@@ -126,16 +125,13 @@ public class AvisosActivity extends AppCompatActivity {
             });
         }
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this)
                 .setTitle(aviso.getTitulo())
                 .setMessage("Prioridade: " + aviso.getPrioridade() + "\n" +
                         "Data: " + aviso.getData() + "\n\n" +
                         aviso.getMensagem())
                 .setPositiveButton("Fechar", null)
-                .setNeutralButton("Marcar como não lido", (dialog, which) -> {
-                    alternarStatusLido(aviso);
-                });
-
-        builder.show();
+                .setNeutralButton("Marcar como não lido", (dialog, which) -> alternarStatusLido(aviso))
+                .show();
     }
 }

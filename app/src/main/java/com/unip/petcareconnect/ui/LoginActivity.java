@@ -8,7 +8,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,12 +18,18 @@ import com.unip.petcareconnect.model.LoginResponse;
 import com.unip.petcareconnect.repository.PetCareRepository;
 import com.unip.petcareconnect.util.SessionManager;
 
+/**
+ * Tela de autenticação exclusiva para Tutores.
+ */
 public class LoginActivity extends AppCompatActivity {
 
-    private EditText etEmail, etSenha;
-    private Button btnLogin, btnIrCadastro;
+    private EditText etLogin;
+    private EditText etSenha;
+    private Button btnLogin;
+    private Button btnIrCadastro;
     private TextView tvEsqueciSenha;
     private ProgressBar progressBar;
+
     private PetCareRepository repository;
     private SessionManager sessionManager;
 
@@ -34,19 +39,15 @@ public class LoginActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
         if (sessionManager.isLoggedIn()) {
-            if ("Tutor".equalsIgnoreCase(sessionManager.getPerfil())) {
-                abrirMain();
-                return;
-            }
-            // Sessão antiga de vet/admin (de versões anteriores do app)
-            sessionManager.logout();
+            abrirMain();
+            return;
         }
 
         setContentView(R.layout.activity_login);
 
         repository = new PetCareRepository(this);
 
-        etEmail = findViewById(R.id.etLogin);
+        etLogin = findViewById(R.id.etLogin);
         etSenha = findViewById(R.id.etSenha);
         btnLogin = findViewById(R.id.btnLogin);
         btnIrCadastro = findViewById(R.id.btnCadastrar);
@@ -54,18 +55,17 @@ public class LoginActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
 
         btnLogin.setOnClickListener(v -> tentarLogin());
-        btnIrCadastro.setOnClickListener(v ->
-                startActivity(new Intent(LoginActivity.this, CadastroActivity.class)));
-        tvEsqueciSenha.setOnClickListener(v -> mostrarEsqueciSenha());
+        btnIrCadastro.setOnClickListener(v -> startActivity(new Intent(this, CadastroActivity.class)));
+        tvEsqueciSenha.setOnClickListener(v -> mostrarDialogRecuperacaoSenha());
     }
 
     private void tentarLogin() {
-        String email = etEmail.getText().toString().trim();
+        String login = etLogin.getText().toString().trim();
         String senha = etSenha.getText().toString().trim();
 
-        if (TextUtils.isEmpty(email)) {
-            etEmail.setError("Informe seu e-mail ou usuário");
-            etEmail.requestFocus();
+        if (TextUtils.isEmpty(login)) {
+            etLogin.setError("Informe seu e-mail ou usuário");
+            etLogin.requestFocus();
             return;
         }
 
@@ -75,65 +75,62 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        setLoading(true);
+        setCarregando(true);
 
-        repository.login(email, senha, new PetCareRepository.RepositoryCallback<LoginResponse>() {
+        repository.login(login, senha, new PetCareRepository.RepositoryCallback<LoginResponse>() {
             @Override
             public void onSuccess(LoginResponse response) {
-                setLoading(false);
+                setCarregando(false);
                 if (response != null && response.getToken() != null) {
-                    Toast.makeText(LoginActivity.this,
-                            "Bem-vindo, " + response.getNome() + "!", Toast.LENGTH_SHORT).show();
                     abrirMain();
                 } else {
-                    Snackbar.make(btnLogin, "Erro ao processar login.", Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(btnLogin, "Erro ao processar o login.", Snackbar.LENGTH_LONG).show();
                 }
             }
 
             @Override
             public void onError(String mensagem) {
-                setLoading(false);
+                setCarregando(false);
                 if (mensagem != null && mensagem.startsWith(PetCareRepository.PREFIXO_ERRO_PERFIL)) {
                     new AlertDialog.Builder(LoginActivity.this)
-                            .setTitle("Acesso pelo portal web")
+                            .setTitle("Acesso restrito")
                             .setMessage(mensagem)
                             .setPositiveButton("Entendi", null)
                             .show();
                 } else {
-                    Snackbar.make(btnLogin, mensagem, Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(btnLogin, mensagem != null ? mensagem : "Erro desconhecido.", Snackbar.LENGTH_LONG).show();
                 }
             }
         });
     }
 
-    private void mostrarEsqueciSenha() {
+    private void mostrarDialogRecuperacaoSenha() {
         final EditText input = new EditText(this);
         input.setHint("E-mail cadastrado");
         input.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
 
         new AlertDialog.Builder(this)
-                .setTitle("Esqueci minha senha")
+                .setTitle("Recuperar senha")
                 .setMessage("Informe o e-mail da sua conta para receber as instruções de recuperação.")
                 .setView(input)
                 .setPositiveButton("Enviar", (dialog, which) -> {
                     String email = input.getText().toString().trim();
                     if (TextUtils.isEmpty(email)) {
-                        Toast.makeText(this, "Informe o e-mail.", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    // TODO: chamar o endpoint de recuperação de senha do backend quando existir
-                    Toast.makeText(this,
-                            "Se o e-mail estiver cadastrado, você receberá as instruções.",
-                            Toast.LENGTH_LONG).show();
+                    // Simulação da solicitação de recuperação de senha enviada ao usuário
+                    Snackbar.make(btnLogin,
+                            "Se o e-mail estiver cadastrado, você receberá as instruções para redefinição.",
+                            Snackbar.LENGTH_LONG).show();
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
 
-    private void setLoading(boolean loading) {
-        progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
-        btnLogin.setEnabled(!loading);
-        btnIrCadastro.setEnabled(!loading);
+    private void setCarregando(boolean carregando) {
+        progressBar.setVisibility(carregando ? View.VISIBLE : View.GONE);
+        btnLogin.setEnabled(!carregando);
+        btnIrCadastro.setEnabled(!carregando);
     }
 
     private void abrirMain() {

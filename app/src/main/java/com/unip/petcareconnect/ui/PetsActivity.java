@@ -29,14 +29,16 @@ import com.unip.petcareconnect.util.SessionManager;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Tela de gerenciamento de Pets do Tutor.
+ * Permite listar, cadastrar, editar e excluir pets.
+ */
 public class PetsActivity extends AppCompatActivity {
 
-    private Toolbar toolbar;
     private RecyclerView rvPets;
     private SwipeRefreshLayout swipeRefresh;
     private ProgressBar progressBar;
     private TextView tvEmptyState;
-    private FloatingActionButton fabAddPet;
 
     private PetAdapter adapter;
     private PetCareRepository repository;
@@ -48,15 +50,15 @@ public class PetsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pets);
 
-        repository = new PetCareRepository(this);
+        repository     = new PetCareRepository(this);
         sessionManager = new SessionManager(this);
 
-        toolbar = findViewById(R.id.toolbar);
-        rvPets = findViewById(R.id.rvPets);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        rvPets       = findViewById(R.id.rvPets);
         swipeRefresh = findViewById(R.id.swipeRefresh);
-        progressBar = findViewById(R.id.progressBar);
+        progressBar  = findViewById(R.id.progressBar);
         tvEmptyState = findViewById(R.id.tvEmptyState);
-        fabAddPet = findViewById(R.id.fabAddPet);
+        FloatingActionButton fabAddPet = findViewById(R.id.fabAddPet);
 
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
@@ -68,19 +70,13 @@ public class PetsActivity extends AppCompatActivity {
         rvPets.setLayoutManager(new LinearLayoutManager(this));
         adapter = new PetAdapter(petList, new PetAdapter.OnPetActionListener() {
             @Override
-            public void onPetClick(Pet pet) {
-                mostrarOpcoesPet(pet);
-            }
+            public void onPetClick(Pet pet) { mostrarOpcoesPet(pet); }
 
             @Override
-            public void onEdit(Pet pet) {
-                mostrarDialogPet(pet);
-            }
+            public void onEdit(Pet pet) { mostrarDialogPet(pet); }
 
             @Override
-            public void onDelete(Pet pet) {
-                confirmarExclusaoPet(pet);
-            }
+            public void onDelete(Pet pet) { confirmarExclusaoPet(pet); }
         });
         rvPets.setAdapter(adapter);
 
@@ -128,7 +124,7 @@ public class PetsActivity extends AppCompatActivity {
                         intent.putExtra(HistoricoActivity.EXTRA_PET_ID, pet.getId());
                         intent.putExtra(HistoricoActivity.EXTRA_PET_NOME, pet.getNome());
                         startActivity(intent);
-                    } else if (which == 2) {
+                    } else {
                         confirmarExclusaoPet(pet);
                     }
                 })
@@ -137,22 +133,21 @@ public class PetsActivity extends AppCompatActivity {
 
     private void mostrarDialogPet(Pet petExistente) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_pet, null);
-        EditText etNomePet = dialogView.findViewById(R.id.etDialogPetNome);
-        Spinner spinnerEspecie = dialogView.findViewById(R.id.spDialogPetTipo);
-        EditText etRaca = dialogView.findViewById(R.id.etDialogPetRaca);
-        EditText etIdade = dialogView.findViewById(R.id.etDialogPetIdade);
-        EditText etPeso = dialogView.findViewById(R.id.etDialogPetPeso);
+        EditText etNomePet      = dialogView.findViewById(R.id.etDialogPetNome);
+        Spinner  spinnerEspecie = dialogView.findViewById(R.id.spDialogPetTipo);
+        EditText etRaca         = dialogView.findViewById(R.id.etDialogPetRaca);
+        EditText etIdade        = dialogView.findViewById(R.id.etDialogPetIdade);
+        EditText etPeso         = dialogView.findViewById(R.id.etDialogPetPeso);
 
         String[] especies = {"Cachorro", "Gato", "Ave", "Roedor", "Outro"};
-        ArrayAdapter<String> especieAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, especies);
-        spinnerEspecie.setAdapter(especieAdapter);
+        spinnerEspecie.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, especies));
 
         boolean isEdit = petExistente != null;
         if (isEdit) {
             etNomePet.setText(petExistente.getNome());
             etRaca.setText(petExistente.getRaca());
             if (petExistente.getIdade() > 0) etIdade.setText(String.valueOf(petExistente.getIdade()));
-            if (petExistente.getPeso() > 0) etPeso.setText(String.valueOf(petExistente.getPeso()));
+            if (petExistente.getPeso()  > 0) etPeso.setText(String.valueOf(petExistente.getPeso()));
 
             for (int i = 0; i < especies.length; i++) {
                 if (especies[i].equalsIgnoreCase(petExistente.getEspecie())) {
@@ -166,11 +161,11 @@ public class PetsActivity extends AppCompatActivity {
                 .setTitle(isEdit ? "Editar Pet" : "Cadastrar Novo Pet")
                 .setView(dialogView)
                 .setPositiveButton("Salvar", (dialog, which) -> {
-                    String nome = etNomePet.getText().toString().trim();
-                    String especie = spinnerEspecie.getSelectedItem().toString();
-                    String raca = etRaca.getText().toString().trim();
+                    String nome     = etNomePet.getText().toString().trim();
+                    String especie  = spinnerEspecie.getSelectedItem().toString();
+                    String raca     = etRaca.getText().toString().trim();
                     String idadeStr = etIdade.getText().toString().trim();
-                    String pesoStr = etPeso.getText().toString().trim();
+                    String pesoStr  = etPeso.getText().toString().trim();
 
                     if (TextUtils.isEmpty(nome)) {
                         Toast.makeText(this, "Nome do pet é obrigatório!", Toast.LENGTH_SHORT).show();

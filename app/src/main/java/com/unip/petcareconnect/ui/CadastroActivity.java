@@ -13,6 +13,10 @@ import com.unip.petcareconnect.R;
 import com.unip.petcareconnect.model.CadastroRequest;
 import com.unip.petcareconnect.repository.PetCareRepository;
 
+/**
+ * Tela de cadastro exclusiva para Tutores.
+ * Utiliza o e-mail como login (não há campo de login separado no layout).
+ */
 public class CadastroActivity extends AppCompatActivity {
 
     private EditText etNome, etEmail, etSenha;
@@ -26,11 +30,10 @@ public class CadastroActivity extends AppCompatActivity {
 
         repository = new PetCareRepository(this);
 
-        // Bind UI components using IDs from activity_cadastro.xml
-        etNome = findViewById(R.id.etCadNome);
-        etEmail = findViewById(R.id.etCadEmail);
-        etSenha = findViewById(R.id.etCadSenha);
-        btnCadastrar = findViewById(R.id.btnCadConfirmar);
+        etNome         = findViewById(R.id.etCadNome);
+        etEmail        = findViewById(R.id.etCadEmail);
+        etSenha        = findViewById(R.id.etCadSenha);
+        btnCadastrar   = findViewById(R.id.btnCadConfirmar);
         btnVoltarLogin = findViewById(R.id.btnCadVoltar);
 
         btnCadastrar.setOnClickListener(v -> tentarCadastro());
@@ -38,7 +41,7 @@ public class CadastroActivity extends AppCompatActivity {
     }
 
     private void tentarCadastro() {
-        String nome = etNome.getText().toString().trim();
+        String nome  = etNome.getText().toString().trim();
         String email = etEmail.getText().toString().trim();
         String senha = etSenha.getText().toString().trim();
 
@@ -48,8 +51,8 @@ public class CadastroActivity extends AppCompatActivity {
             return;
         }
 
-        if (TextUtils.isEmpty(email)) {
-            etEmail.setError("Informe seu e-mail");
+        if (TextUtils.isEmpty(email) || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            etEmail.setError("Informe um e-mail válido");
             etEmail.requestFocus();
             return;
         }
@@ -60,12 +63,15 @@ public class CadastroActivity extends AppCompatActivity {
             return;
         }
 
+        // O e-mail é usado como login (não há campo separado no layout)
         CadastroRequest req = new CadastroRequest(nome, email, email, senha);
 
         repository.cadastrarTutor(req, new PetCareRepository.Callback<Boolean>() {
             @Override
             public void onSuccess(Boolean data) {
-                Toast.makeText(CadastroActivity.this, "Cadastro realizado com sucesso! Faça login para continuar.", Toast.LENGTH_LONG).show();
+                Toast.makeText(CadastroActivity.this,
+                        "Cadastro realizado com sucesso! Faça login para continuar.",
+                        Toast.LENGTH_LONG).show();
                 finish();
             }
 

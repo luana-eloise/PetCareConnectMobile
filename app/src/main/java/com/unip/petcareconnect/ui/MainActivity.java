@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,6 +20,10 @@ import com.unip.petcareconnect.util.SessionManager;
 
 import java.util.List;
 
+/**
+ * Tela principal do Tutor.
+ * Exibe estatísticas rápidas e navegação para as seções do app.
+ */
 public class MainActivity extends AppCompatActivity {
 
     private TextView tvUserName, tvUserRole;
@@ -44,19 +47,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         repository = new PetCareRepository(this);
 
-        tvUserName = findViewById(R.id.tvMainGreeting);
-        tvUserRole = findViewById(R.id.tvMainPerfil);
-        tvStatPets = findViewById(R.id.tvStatPets);
+        tvUserName      = findViewById(R.id.tvMainGreeting);
+        tvUserRole      = findViewById(R.id.tvMainPerfil);
+        tvStatPets      = findViewById(R.id.tvStatPets);
         tvStatConsultas = findViewById(R.id.tvStatConsultas);
-        tvStatVacinas = findViewById(R.id.tvStatVacinas);
+        tvStatVacinas   = findViewById(R.id.tvStatVacinas);
         tvStatRelatorios = findViewById(R.id.tvStatRelatorios);
 
-        cardPets = findViewById(R.id.cardNavPets);
-        cardConsultas = findViewById(R.id.cardNavConsultas);
-        cardVacinas = findViewById(R.id.cardNavVacinas);
+        cardPets       = findViewById(R.id.cardNavPets);
+        cardConsultas  = findViewById(R.id.cardNavConsultas);
+        cardVacinas    = findViewById(R.id.cardNavVacinas);
         cardRelatorios = findViewById(R.id.cardNavRelatorios);
-        cardAvisos = findViewById(R.id.cardNavAvisos);
-        btnLogout = findViewById(R.id.btnMainLogout);
+        cardAvisos     = findViewById(R.id.cardNavAvisos);
+        btnLogout      = findViewById(R.id.btnMainLogout);
 
         configurarUsuario();
         configurarNavegacao();
@@ -70,49 +73,48 @@ public class MainActivity extends AppCompatActivity {
 
     private void configurarUsuario() {
         String nome = sessionManager.getNome();
-        String role = sessionManager.getPerfil();
-
+        // SessionManager.getPerfil() sempre retorna "Tutor" — exibição simplificada
         tvUserName.setText(nome != null && !nome.isEmpty() ? nome : "Usuário");
-        tvUserRole.setText("Perfil: " + (role != null && !role.isEmpty() ? role : "Tutor"));
-
+        tvUserRole.setText("Perfil: Tutor");
         btnLogout.setOnClickListener(v -> confirmarLogout());
     }
 
     private void configurarNavegacao() {
-        cardPets.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, PetsActivity.class)));
-        cardConsultas.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, ConsultasActivity.class)));
-        cardVacinas.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, VacinasActivity.class)));
-        cardRelatorios.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, RelatoriosActivity.class)));
-        cardAvisos.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, AvisosActivity.class)));
+        cardPets.setOnClickListener(v -> startActivity(new Intent(this, PetsActivity.class)));
+        cardConsultas.setOnClickListener(v -> startActivity(new Intent(this, ConsultasActivity.class)));
+        cardVacinas.setOnClickListener(v -> startActivity(new Intent(this, VacinasActivity.class)));
+        cardRelatorios.setOnClickListener(v -> startActivity(new Intent(this, RelatoriosActivity.class)));
+        cardAvisos.setOnClickListener(v -> startActivity(new Intent(this, AvisosActivity.class)));
     }
 
     private void carregarEstatisticas() {
-        // Carrega Pets
+        carregarTotalPets();
+        carregarConsultasMarcadas();
+        carregarVacinasPendentes();
+        carregarTotalRelatorios();
+    }
+
+    private void carregarTotalPets() {
         repository.listarPets(new PetCareRepository.RepositoryCallback<List<Pet>>() {
             @Override
             public void onSuccess(List<Pet> pets) {
-                int totalPets = (pets != null) ? pets.size() : 0;
-                tvStatPets.setText(String.valueOf(totalPets));
+                tvStatPets.setText(String.valueOf(pets != null ? pets.size() : 0));
             }
 
             @Override
-            public void onError(String mensagem) {
-                // mantém valor prévio
-            }
+            public void onError(String mensagem) { /* mantém valor prévio */ }
         });
+    }
 
-        // Carrega Consultas (apenas marcadas a serem realizadas)
+    private void carregarConsultasMarcadas() {
         repository.listarConsultas(new PetCareRepository.RepositoryCallback<List<Consulta>>() {
             @Override
             public void onSuccess(List<Consulta> consultas) {
                 int totalMarcadas = 0;
                 if (consultas != null) {
                     for (Consulta c : consultas) {
-                        if (c != null && c.getStatus() != null) {
-                            String status = c.getStatus().trim();
-                            if ("Marcada".equalsIgnoreCase(status) || "Agendada".equalsIgnoreCase(status) || "Confirmada".equalsIgnoreCase(status)) {
-                                totalMarcadas++;
-                            }
+                        if (c != null && c.isMarcada()) {
+                            totalMarcadas++;
                         }
                     }
                 }
@@ -120,41 +122,37 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onError(String mensagem) {
-            }
+            public void onError(String mensagem) { /* mantém valor prévio */ }
         });
+    }
 
-        // Carrega Vacinas (apenas pendentes)
+    private void carregarVacinasPendentes() {
         repository.listarTodasVacinas(new PetCareRepository.RepositoryCallback<List<Vacina>>() {
             @Override
             public void onSuccess(List<Vacina> vacinas) {
                 int pendentes = 0;
                 if (vacinas != null) {
                     for (Vacina v : vacinas) {
-                        if (v != null && !v.isAplicada()) {
-                            pendentes++;
-                        }
+                        if (v != null && !v.isAplicada()) pendentes++;
                     }
                 }
                 tvStatVacinas.setText(String.valueOf(pendentes));
             }
 
             @Override
-            public void onError(String mensagem) {
-            }
+            public void onError(String mensagem) { /* mantém valor prévio */ }
         });
+    }
 
-        // Carrega Relatórios
+    private void carregarTotalRelatorios() {
         repository.listarRelatorios(new PetCareRepository.RepositoryCallback<List<Relatorio>>() {
             @Override
             public void onSuccess(List<Relatorio> relatorios) {
-                int laudos = (relatorios != null) ? relatorios.size() : 0;
-                tvStatRelatorios.setText(String.valueOf(laudos));
+                tvStatRelatorios.setText(String.valueOf(relatorios != null ? relatorios.size() : 0));
             }
 
             @Override
-            public void onError(String mensagem) {
-            }
+            public void onError(String mensagem) { /* mantém valor prévio */ }
         });
     }
 
@@ -169,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void fazerLogout() {
         sessionManager.logout();
-        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+        Intent intent = new Intent(this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();

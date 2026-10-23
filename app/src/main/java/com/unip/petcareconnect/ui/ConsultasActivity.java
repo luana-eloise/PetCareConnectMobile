@@ -40,9 +40,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Tela de Consultas e Agendamentos do Tutor.
+ * Permite listar, agendar e cancelar consultas.
+ */
 public class ConsultasActivity extends AppCompatActivity {
 
-    private Toolbar toolbar;
     private RecyclerView rvConsultas;
     private SwipeRefreshLayout swipeRefresh;
     private ProgressBar progressBar;
@@ -60,15 +63,15 @@ public class ConsultasActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_consultas);
 
-        repository = new PetCareRepository(this);
+        repository     = new PetCareRepository(this);
         sessionManager = new SessionManager(this);
 
-        toolbar = findViewById(R.id.toolbar);
-        rvConsultas = findViewById(R.id.rvConsultas);
-        swipeRefresh = findViewById(R.id.swipeRefresh);
-        progressBar = findViewById(R.id.progressBar);
-        tvEmptyState = findViewById(R.id.tvEmptyState);
-        fabAddConsulta = findViewById(R.id.fabAddConsulta);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        rvConsultas     = findViewById(R.id.rvConsultas);
+        swipeRefresh    = findViewById(R.id.swipeRefresh);
+        progressBar     = findViewById(R.id.progressBar);
+        tvEmptyState    = findViewById(R.id.tvEmptyState);
+        fabAddConsulta  = findViewById(R.id.fabAddConsulta);
 
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
@@ -106,7 +109,6 @@ public class ConsultasActivity extends AppCompatActivity {
                 petList.clear();
                 if (pets != null) petList.addAll(pets);
 
-                // Carrega consultas
                 repository.listarConsultas(new PetCareRepository.RepositoryCallback<List<Consulta>>() {
                     @Override
                     public void onSuccess(List<Consulta> consultas) {
@@ -114,7 +116,8 @@ public class ConsultasActivity extends AppCompatActivity {
                         swipeRefresh.setRefreshing(false);
                         consultaList.clear();
                         if (consultas != null && !consultas.isEmpty()) {
-                            Collections.sort(consultas, (c1, c2) -> Long.compare(parseConsultaTimestamp(c2), parseConsultaTimestamp(c1)));
+                            Collections.sort(consultas,
+                                    (c1, c2) -> Long.compare(parseConsultaTimestamp(c2), parseConsultaTimestamp(c1)));
                             consultaList.addAll(consultas);
                             tvEmptyState.setVisibility(View.GONE);
                         } else {
@@ -167,73 +170,59 @@ public class ConsultasActivity extends AppCompatActivity {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_consulta, null);
         Spinner spinnerPets = dialogView.findViewById(R.id.spDialogConsultaPet);
         Spinner spinnerVets = dialogView.findViewById(R.id.spDialogConsultaVet);
-        EditText etDataConsulta = dialogView.findViewById(R.id.etDialogConsultaData);
+        EditText etDataConsulta    = dialogView.findViewById(R.id.etDialogConsultaData);
         EditText etHorarioConsulta = dialogView.findViewById(R.id.etDialogConsultaHora);
-        EditText etMotivo = dialogView.findViewById(R.id.etDialogConsultaMotivo);
-        EditText etObservacoes = dialogView.findViewById(R.id.etDialogConsultaObs);
+        EditText etMotivo          = dialogView.findViewById(R.id.etDialogConsultaMotivo);
+        EditText etObservacoes     = dialogView.findViewById(R.id.etDialogConsultaObs);
 
-        // Pets
+        // Popula spinner de pets
         List<String> nomesPets = new ArrayList<>();
         for (Pet p : petList) {
             nomesPets.add(p.getNome() + " (" + p.getEspecie() + ")");
         }
-        ArrayAdapter<String> petAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, nomesPets);
-        spinnerPets.setAdapter(petAdapter);
+        spinnerPets.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, nomesPets));
 
-        // Veterinários disponíveis
+        // Veterinários disponíveis (lista estática para agendamento pelo tutor)
         List<String> veterinarios = new ArrayList<>();
         veterinarios.add("Dr(a). Ana Lima — Clínica Geral");
         veterinarios.add("Dr(a). Carlos Mendes — Dermatologia");
         veterinarios.add("Dr(a). Fernanda Costa — Ortopedia");
         veterinarios.add("Dr(a). Ricardo Alves — Cardiologia");
         veterinarios.add("Dr(a). Juliana Rocha — Nutrição Animal");
-        ArrayAdapter<String> vetAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, veterinarios);
-        spinnerVets.setAdapter(vetAdapter);
+        spinnerVets.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, veterinarios));
 
         TextInputLayout tilData = dialogView.findViewById(R.id.tilDialogConsultaData);
         TextInputLayout tilHora = dialogView.findViewById(R.id.tilDialogConsultaHora);
 
-        // DatePicker dialog e máscara brasileira dd/MM/yyyy
         etDataConsulta.addTextChangedListener(new DateMaskWatcher(etDataConsulta));
         etDataConsulta.setOnClickListener(v -> abrirDatePicker(etDataConsulta));
-        if (tilData != null) {
-            tilData.setEndIconOnClickListener(v -> abrirDatePicker(etDataConsulta));
-        }
+        if (tilData != null) tilData.setEndIconOnClickListener(v -> abrirDatePicker(etDataConsulta));
 
-        // TimePicker dialog e máscara HH:mm
         etHorarioConsulta.addTextChangedListener(new TimeMaskWatcher(etHorarioConsulta));
         etHorarioConsulta.setOnClickListener(v -> abrirTimePicker(etHorarioConsulta));
-        if (tilHora != null) {
-            tilHora.setEndIconOnClickListener(v -> abrirTimePicker(etHorarioConsulta));
-        }
+        if (tilHora != null) tilHora.setEndIconOnClickListener(v -> abrirTimePicker(etHorarioConsulta));
 
         new AlertDialog.Builder(this)
                 .setTitle("Novo Agendamento")
                 .setView(dialogView)
                 .setPositiveButton("Agendar", (dialog, which) -> {
-                    int selectedPetIndex = spinnerPets.getSelectedItemPosition();
-                    Pet petSelecionado = petList.get(selectedPetIndex);
+                    Pet petSelecionado    = petList.get(spinnerPets.getSelectedItemPosition());
                     String vetSelecionado = veterinarios.get(spinnerVets.getSelectedItemPosition());
-                    String data = etDataConsulta.getText().toString().trim();
+                    String data    = etDataConsulta.getText().toString().trim();
                     String horario = etHorarioConsulta.getText().toString().trim();
-                    String motivo = etMotivo.getText().toString().trim();
-                    String obs = etObservacoes.getText().toString().trim();
+                    String motivo  = etMotivo.getText().toString().trim();
+                    String obs     = etObservacoes.getText().toString().trim();
 
                     if (TextUtils.isEmpty(data) || data.length() < 10) {
-                        Toast.makeText(this, "Preencha a data no formato brasileiro dd/MM/yyyy (ex: 17/09/2026)!", Toast.LENGTH_SHORT).show();
-                        etDataConsulta.requestFocus();
+                        Toast.makeText(this, "Preencha a data no formato dd/MM/yyyy!", Toast.LENGTH_SHORT).show();
                         return;
                     }
-
                     if (TextUtils.isEmpty(horario) || horario.length() < 5) {
-                        Toast.makeText(this, "Preencha o horário no formato HH:mm (ex: 14:00)!", Toast.LENGTH_SHORT).show();
-                        etHorarioConsulta.requestFocus();
+                        Toast.makeText(this, "Preencha o horário no formato HH:mm!", Toast.LENGTH_SHORT).show();
                         return;
                     }
-
                     if (TextUtils.isEmpty(motivo)) {
                         Toast.makeText(this, "Preencha o motivo da consulta!", Toast.LENGTH_SHORT).show();
-                        etMotivo.requestFocus();
                         return;
                     }
 
@@ -246,7 +235,7 @@ public class ConsultasActivity extends AppCompatActivity {
                     novaConsulta.setHorario(horario);
                     novaConsulta.setMotivo(motivo);
                     novaConsulta.setObservacoes(obs);
-                    novaConsulta.setStatus("Agendada");
+                    novaConsulta.setStatus(Consulta.STATUS_MARCADA);
 
                     repository.agendarConsulta(novaConsulta, new PetCareRepository.RepositoryCallback<Consulta>() {
                         @Override
@@ -268,7 +257,7 @@ public class ConsultasActivity extends AppCompatActivity {
     private void confirmarCancelamento(Consulta consulta) {
         new AlertDialog.Builder(this)
                 .setTitle("Cancelar Consulta")
-                .setMessage("Atenção: Cancelamentos com menos de 24 horas de antecedência serão registrados como 'Não Compareceu'. Confirma o cancelamento da consulta de " + consulta.getPetNome() + "?")
+                .setMessage("Atenção: Cancelamentos com menos de 24h de antecedência serão registrados como 'Não Compareceu'.\n\nConfirma o cancelamento da consulta de " + consulta.getPetNome() + "?")
                 .setPositiveButton("Sim, cancelar", (dialog, which) -> {
                     repository.cancelarConsulta(consulta.getId(), new PetCareRepository.RepositoryCallback<Boolean>() {
                         @Override
@@ -287,31 +276,30 @@ public class ConsultasActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void abrirDatePicker(EditText etDataConsulta) {
-        Calendar calendar = Calendar.getInstance();
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
-            String dataStr = String.format(Locale.getDefault(), "%02d/%02d/%04d", dayOfMonth, month + 1, year);
-            etDataConsulta.setText(dataStr);
-        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
-        datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
-        datePickerDialog.show();
+    private void abrirDatePicker(EditText campo) {
+        Calendar cal = Calendar.getInstance();
+        DatePickerDialog dlg = new DatePickerDialog(this, (view, year, month, day) -> {
+            String dataStr = String.format(Locale.getDefault(), "%02d/%02d/%04d", day, month + 1, year);
+            campo.setText(dataStr);
+        }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH));
+        dlg.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
+        dlg.show();
     }
 
-    private void abrirTimePicker(EditText etHorarioConsulta) {
-        Calendar calendar = Calendar.getInstance();
-        new TimePickerDialog(this, (view, hourOfDay, minute) -> {
-            String horaStr = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute);
-            etHorarioConsulta.setText(horaStr);
-        }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show();
+    private void abrirTimePicker(EditText campo) {
+        Calendar cal = Calendar.getInstance();
+        new TimePickerDialog(this, (view, hour, minute) -> {
+            campo.setText(String.format(Locale.getDefault(), "%02d:%02d", hour, minute));
+        }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show();
     }
+
+    // ---- Máscaras de input ----
 
     public static class DateMaskWatcher implements TextWatcher {
         private final EditText editText;
         private boolean isUpdating = false;
 
-        public DateMaskWatcher(EditText editText) {
-            this.editText = editText;
-        }
+        public DateMaskWatcher(EditText editText) { this.editText = editText; }
 
         @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
         @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -319,26 +307,21 @@ public class ConsultasActivity extends AppCompatActivity {
         @Override
         public void afterTextChanged(Editable s) {
             if (isUpdating) return;
-
             String clean = s.toString().replaceAll("[^\\d]", "");
             if (clean.length() > 8) clean = clean.substring(0, 8);
 
-            StringBuilder formatted = new StringBuilder();
-            if (clean.length() > 0) {
-                if (clean.length() <= 2) {
-                    formatted.append(clean);
-                } else if (clean.length() <= 4) {
-                    formatted.append(clean.substring(0, 2)).append("/").append(clean.substring(2));
-                } else {
-                    formatted.append(clean.substring(0, 2)).append("/")
-                             .append(clean.substring(2, 4)).append("/")
-                             .append(clean.substring(4));
-                }
+            StringBuilder sb = new StringBuilder();
+            if (clean.length() <= 2) {
+                sb.append(clean);
+            } else if (clean.length() <= 4) {
+                sb.append(clean, 0, 2).append("/").append(clean.substring(2));
+            } else {
+                sb.append(clean, 0, 2).append("/").append(clean, 2, 4).append("/").append(clean.substring(4));
             }
 
             isUpdating = true;
-            editText.setText(formatted.toString());
-            editText.setSelection(formatted.length());
+            editText.setText(sb.toString());
+            editText.setSelection(sb.length());
             isUpdating = false;
         }
     }
@@ -347,9 +330,7 @@ public class ConsultasActivity extends AppCompatActivity {
         private final EditText editText;
         private boolean isUpdating = false;
 
-        public TimeMaskWatcher(EditText editText) {
-            this.editText = editText;
-        }
+        public TimeMaskWatcher(EditText editText) { this.editText = editText; }
 
         @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
         @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -357,26 +338,27 @@ public class ConsultasActivity extends AppCompatActivity {
         @Override
         public void afterTextChanged(Editable s) {
             if (isUpdating) return;
-
             String clean = s.toString().replaceAll("[^\\d]", "");
             if (clean.length() > 4) clean = clean.substring(0, 4);
 
-            StringBuilder formatted = new StringBuilder();
-            if (clean.length() > 0) {
-                if (clean.length() <= 2) {
-                    formatted.append(clean);
-                } else {
-                    formatted.append(clean.substring(0, 2)).append(":").append(clean.substring(2));
-                }
+            StringBuilder sb = new StringBuilder();
+            if (clean.length() <= 2) {
+                sb.append(clean);
+            } else {
+                sb.append(clean, 0, 2).append(":").append(clean.substring(2));
             }
 
             isUpdating = true;
-            editText.setText(formatted.toString());
-            editText.setSelection(formatted.length());
+            editText.setText(sb.toString());
+            editText.setSelection(sb.length());
             isUpdating = false;
         }
     }
 
+    /**
+     * Converte data/hora de uma consulta em timestamp para ordenação.
+     * Suporta formatos brasileiro (dd/MM/yyyy) e ISO (yyyy-MM-dd).
+     */
     private static long parseConsultaTimestamp(Consulta c) {
         if (c == null || c.getData() == null) return Long.MIN_VALUE;
         String dataStr = c.getData().trim();
@@ -399,13 +381,5 @@ public class ConsultasActivity extends AppCompatActivity {
             } catch (Exception ignored) {}
         }
         return Long.MIN_VALUE;
-    }
-
-    private static boolean isConsultaMarcada(Consulta c) {
-        if (c == null || c.getStatus() == null) return false;
-        String status = c.getStatus().trim();
-        return "Marcada".equalsIgnoreCase(status)
-                || "Agendada".equalsIgnoreCase(status)
-                || "Confirmada".equalsIgnoreCase(status);
     }
 }

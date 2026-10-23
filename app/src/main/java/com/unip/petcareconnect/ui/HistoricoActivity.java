@@ -21,6 +21,10 @@ import com.unip.petcareconnect.repository.PetCareRepository;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Tela de Histórico Clínico de um Pet específico.
+ * Recebe {@link #EXTRA_PET_ID} e {@link #EXTRA_PET_NOME} via Intent.
+ */
 public class HistoricoActivity extends AppCompatActivity {
 
     public static final String EXTRA_PET_ID   = "pet_id";
@@ -47,10 +51,10 @@ public class HistoricoActivity extends AppCompatActivity {
         repository = new PetCareRepository(this);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
-        rvHistorico   = findViewById(R.id.rvHistorico);
-        swipeRefresh  = findViewById(R.id.swipeRefresh);
-        progressBar   = findViewById(R.id.progressBar);
-        tvEmptyState  = findViewById(R.id.tvEmptyState);
+        rvHistorico  = findViewById(R.id.rvHistorico);
+        swipeRefresh = findViewById(R.id.swipeRefresh);
+        progressBar  = findViewById(R.id.progressBar);
+        tvEmptyState = findViewById(R.id.tvEmptyState);
 
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
@@ -93,9 +97,10 @@ public class HistoricoActivity extends AppCompatActivity {
         });
     }
 
-    // ---- Adapter interno ----
+    // ---- Adapter interno (sem dependências externas) ----
     static class HistoricoAdapter extends RecyclerView.Adapter<HistoricoAdapter.VH> {
         private final List<Historico> lista;
+
         HistoricoAdapter(List<Historico> lista) { this.lista = lista; }
 
         @Override
@@ -111,10 +116,11 @@ public class HistoricoActivity extends AppCompatActivity {
             holder.tvDesc.setText(h.getDescricao() != null ? h.getDescricao() : "Sem descrição.");
         }
 
-        @Override public int getItemCount() { return lista.size(); }
+        @Override
+        public int getItemCount() { return lista.size(); }
 
         static class VH extends RecyclerView.ViewHolder {
-            TextView tvData, tvDesc;
+            final TextView tvData, tvDesc;
             VH(View itemView) {
                 super(itemView);
                 tvData = itemView.findViewById(R.id.tvHistData);

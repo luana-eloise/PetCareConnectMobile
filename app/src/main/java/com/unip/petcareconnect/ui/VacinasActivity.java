@@ -25,9 +25,12 @@ import com.unip.petcareconnect.repository.PetCareRepository;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Tela da Carteira de Vacinação.
+ * Permite filtrar vacinas por pet e visualizar detalhes de cada registro.
+ */
 public class VacinasActivity extends AppCompatActivity {
 
-    private Toolbar toolbar;
     private Spinner spinnerPets;
     private RecyclerView rvVacinas;
     private SwipeRefreshLayout swipeRefresh;
@@ -46,11 +49,11 @@ public class VacinasActivity extends AppCompatActivity {
 
         repository = new PetCareRepository(this);
 
-        toolbar = findViewById(R.id.toolbar);
-        spinnerPets = findViewById(R.id.spinnerPets);
-        rvVacinas = findViewById(R.id.rvVacinas);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        spinnerPets  = findViewById(R.id.spinnerPets);
+        rvVacinas    = findViewById(R.id.rvVacinas);
         swipeRefresh = findViewById(R.id.swipeRefresh);
-        progressBar = findViewById(R.id.progressBar);
+        progressBar  = findViewById(R.id.progressBar);
         tvEmptyState = findViewById(R.id.tvEmptyState);
 
         setSupportActionBar(toolbar);
@@ -65,7 +68,6 @@ public class VacinasActivity extends AppCompatActivity {
         rvVacinas.setAdapter(adapter);
 
         swipeRefresh.setOnRefreshListener(this::carregarPetsESelecionar);
-
         carregarPetsESelecionar();
     }
 
@@ -80,14 +82,11 @@ public class VacinasActivity extends AppCompatActivity {
 
                 if (pets != null) {
                     petList.addAll(pets);
-                    for (Pet p : pets) {
-                        nomes.add(p.getNome());
-                    }
+                    for (Pet p : pets) nomes.add(p.getNome());
                 }
 
-                ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(VacinasActivity.this,
-                        android.R.layout.simple_spinner_dropdown_item, nomes);
-                spinnerPets.setAdapter(spinnerAdapter);
+                spinnerPets.setAdapter(new ArrayAdapter<>(VacinasActivity.this,
+                        android.R.layout.simple_spinner_dropdown_item, nomes));
 
                 spinnerPets.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                     @Override
@@ -95,8 +94,7 @@ public class VacinasActivity extends AppCompatActivity {
                         if (position == 0) {
                             carregarTodasVacinas();
                         } else {
-                            Pet selecionado = petList.get(position - 1);
-                            carregarVacinasDoPet(selecionado.getId());
+                            carregarVacinasDoPet(petList.get(position - 1).getId());
                         }
                     }
 
@@ -120,9 +118,7 @@ public class VacinasActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         repository.listarTodasVacinas(new PetCareRepository.RepositoryCallback<List<Vacina>>() {
             @Override
-            public void onSuccess(List<Vacina> vacinas) {
-                atualizarLista(vacinas);
-            }
+            public void onSuccess(List<Vacina> vacinas) { atualizarLista(vacinas); }
 
             @Override
             public void onError(String mensagem) {
@@ -137,9 +133,7 @@ public class VacinasActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         repository.listarVacinasDoPet(petId, new PetCareRepository.RepositoryCallback<List<Vacina>>() {
             @Override
-            public void onSuccess(List<Vacina> vacinas) {
-                atualizarLista(vacinas);
-            }
+            public void onSuccess(List<Vacina> vacinas) { atualizarLista(vacinas); }
 
             @Override
             public void onError(String mensagem) {
