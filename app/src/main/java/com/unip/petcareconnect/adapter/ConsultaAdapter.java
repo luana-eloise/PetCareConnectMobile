@@ -15,7 +15,11 @@ import com.unip.petcareconnect.model.Consulta;
 
 import java.util.List;
 
+/**
+ * Adapter do RecyclerView para listagem de consultas do Tutor.
+ */
 public class ConsultaAdapter extends RecyclerView.Adapter<ConsultaAdapter.ViewHolder> {
+
     private final List<Consulta> consultas;
     private final OnConsultaActionListener listener;
 
@@ -39,39 +43,54 @@ public class ConsultaAdapter extends RecyclerView.Adapter<ConsultaAdapter.ViewHo
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Consulta c = consultas.get(position);
-        holder.tvPet.setText("🐾 " + c.getPetNome());
-        holder.tvDataHora.setText("📅 " + c.getData() + " às " + c.getHora());
-        holder.tvVet.setText("Veterinário: " + (c.getVetNome() != null ? c.getVetNome() : "Dr. Carlos Mendes"));
-        holder.tvObs.setText(c.getObservacoes() != null && !c.getObservacoes().isEmpty() ? c.getObservacoes() : "Sem observações adicionais.");
-        holder.tvStatus.setText(c.getStatus());
+        if (c == null) return;
 
-        holder.itemView.setOnClickListener(v -> listener.onConsultaClick(c));
+        holder.tvPet.setText("🐾 " + (c.getPetNome() != null ? c.getPetNome() : "Pet"));
+        holder.tvDataHora.setText("📅 " + c.getDataHoraFormatada());
+        
+        String vetNome = c.getVeterinarioNome() != null && !c.getVeterinarioNome().trim().isEmpty() 
+                ? c.getVeterinarioNome() 
+                : "Clínica PetCare";
+        holder.tvVet.setText("Veterinário: " + vetNome);
+        
+        holder.tvObs.setText(c.getObservacoes() != null && !c.getObservacoes().trim().isEmpty() 
+                ? c.getObservacoes() 
+                : "Sem observações adicionais.");
+        holder.tvStatus.setText(c.getStatus() != null ? c.getStatus() : Consulta.STATUS_MARCADA);
 
-        if ("Marcada".equalsIgnoreCase(c.getStatus()) || "Agendada".equalsIgnoreCase(c.getStatus()) || "Confirmada".equalsIgnoreCase(c.getStatus())) {
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) listener.onConsultaClick(c);
+        });
+
+        // Configuração visual do status usando métodos de modelo
+        if (c.isMarcada()) {
             holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_green);
             holder.tvStatus.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.teal_dark));
             holder.btnCancelar.setVisibility(View.VISIBLE);
-        } else if ("Realizada".equalsIgnoreCase(c.getStatus())) {
+        } else if (c.isRealizada()) {
             holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_yellow);
             holder.tvStatus.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.navy_primary));
             holder.btnCancelar.setVisibility(View.GONE);
         } else {
+            // Cancelada ou Não Compareceu
             holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_red);
             holder.tvStatus.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.status_red));
             holder.btnCancelar.setVisibility(View.GONE);
         }
 
-        holder.btnCancelar.setOnClickListener(v -> listener.onCancelar(c));
+        holder.btnCancelar.setOnClickListener(v -> {
+            if (listener != null) listener.onCancelar(c);
+        });
     }
 
     @Override
     public int getItemCount() {
-        return consultas.size();
+        return consultas != null ? consultas.size() : 0;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvPet, tvDataHora, tvVet, tvObs, tvStatus;
-        Button btnCancelar;
+        final TextView tvPet, tvDataHora, tvVet, tvObs, tvStatus;
+        final Button btnCancelar;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);

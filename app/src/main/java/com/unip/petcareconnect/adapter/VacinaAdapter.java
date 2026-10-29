@@ -14,7 +14,11 @@ import com.unip.petcareconnect.model.Vacina;
 
 import java.util.List;
 
+/**
+ * Adapter do RecyclerView para exibição da carteira de vacinas do Tutor.
+ */
 public class VacinaAdapter extends RecyclerView.Adapter<VacinaAdapter.ViewHolder> {
+
     private final List<Vacina> vacinas;
     private final OnVacinaClickListener listener;
 
@@ -37,11 +41,17 @@ public class VacinaAdapter extends RecyclerView.Adapter<VacinaAdapter.ViewHolder
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Vacina v = vacinas.get(position);
-        holder.tvNome.setText("💉 " + v.getNome());
+        if (v == null) return;
+
+        holder.tvNome.setText("💉 " + (v.getNome() != null ? v.getNome() : "Vacina"));
         String petNome = v.getPetNome();
-        holder.tvPet.setText("🐾 Pet: " + (petNome != null && !petNome.isEmpty() ? petNome : "—"));
+        holder.tvPet.setText("🐾 Pet: " + (petNome != null && !petNome.trim().isEmpty() ? petNome : "—"));
         holder.tvData.setText("Data de Aplicação: " + (v.getDataAplicacao() != null ? v.getDataAplicacao() : "Pendente"));
-        holder.tvObs.setText(v.getObservacao() != null && !v.getObservacao().isEmpty() ? "Obs: " + v.getObservacao() : "Sem observações.");
+        
+        String obs = v.getObservacao() != null && !v.getObservacao().trim().isEmpty()
+                ? "Obs: " + v.getObservacao()
+                : "Sem observações.";
+        holder.tvObs.setText(obs);
 
         if (v.isAplicada()) {
             holder.tvStatus.setText("Aplicada");
@@ -53,16 +63,18 @@ public class VacinaAdapter extends RecyclerView.Adapter<VacinaAdapter.ViewHolder
             holder.tvStatus.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.status_yellow));
         }
 
-        holder.itemView.setOnClickListener(view -> listener.onVacinaClick(v));
+        holder.itemView.setOnClickListener(view -> {
+            if (listener != null) listener.onVacinaClick(v);
+        });
     }
 
     @Override
     public int getItemCount() {
-        return vacinas.size();
+        return vacinas != null ? vacinas.size() : 0;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvNome, tvStatus, tvData, tvObs, tvPet;
+        final TextView tvNome, tvStatus, tvData, tvObs, tvPet;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);

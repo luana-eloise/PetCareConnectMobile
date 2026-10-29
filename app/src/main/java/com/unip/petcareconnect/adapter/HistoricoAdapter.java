@@ -13,7 +13,11 @@ import com.unip.petcareconnect.model.Historico;
 
 import java.util.List;
 
+/**
+ * Adapter do RecyclerView para exibição do histórico de ocorrências do Pet.
+ */
 public class HistoricoAdapter extends RecyclerView.Adapter<HistoricoAdapter.ViewHolder> {
+
     private final List<Historico> historicos;
 
     public HistoricoAdapter(List<Historico> historicos) {
@@ -30,17 +34,19 @@ public class HistoricoAdapter extends RecyclerView.Adapter<HistoricoAdapter.View
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Historico h = historicos.get(position);
-        holder.tvData.setText("📅 " + h.getDataEvento());
-        holder.tvDesc.setText(h.getDescricao());
+        if (h == null) return;
+
+        holder.tvData.setText("📅 " + (h.getDataEvento() != null ? h.getDataEvento() : "—"));
+        holder.tvDesc.setText(h.getDescricao() != null ? h.getDescricao() : "Sem descrição.");
     }
 
     @Override
     public int getItemCount() {
-        return historicos.size();
+        return historicos != null ? historicos.size() : 0;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvData, tvDesc;
+        final TextView tvData, tvDesc;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);

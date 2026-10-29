@@ -1,9 +1,6 @@
 package com.unip.petcareconnect.ui;
 
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -15,6 +12,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.unip.petcareconnect.R;
+import com.unip.petcareconnect.adapter.HistoricoAdapter;
 import com.unip.petcareconnect.model.Historico;
 import com.unip.petcareconnect.repository.PetCareRepository;
 
@@ -72,60 +70,28 @@ public class HistoricoActivity extends AppCompatActivity {
     }
 
     private void carregarHistorico() {
-        progressBar.setVisibility(View.VISIBLE);
+        progressBar.setVisibility(android.view.View.VISIBLE);
         repository.listarHistorico(petId, new PetCareRepository.RepositoryCallback<List<Historico>>() {
             @Override
             public void onSuccess(List<Historico> itens) {
-                progressBar.setVisibility(View.GONE);
+                progressBar.setVisibility(android.view.View.GONE);
                 swipeRefresh.setRefreshing(false);
                 historicoList.clear();
                 if (itens != null && !itens.isEmpty()) {
                     historicoList.addAll(itens);
-                    tvEmptyState.setVisibility(View.GONE);
+                    tvEmptyState.setVisibility(android.view.View.GONE);
                 } else {
-                    tvEmptyState.setVisibility(View.VISIBLE);
+                    tvEmptyState.setVisibility(android.view.View.VISIBLE);
                 }
                 adapter.notifyDataSetChanged();
             }
 
             @Override
             public void onError(String mensagem) {
-                progressBar.setVisibility(View.GONE);
+                progressBar.setVisibility(android.view.View.GONE);
                 swipeRefresh.setRefreshing(false);
                 Snackbar.make(rvHistorico, "Erro ao carregar histórico: " + mensagem, Snackbar.LENGTH_LONG).show();
             }
         });
-    }
-
-    // ---- Adapter interno (sem dependências externas) ----
-    static class HistoricoAdapter extends RecyclerView.Adapter<HistoricoAdapter.VH> {
-        private final List<Historico> lista;
-
-        HistoricoAdapter(List<Historico> lista) { this.lista = lista; }
-
-        @Override
-        public VH onCreateViewHolder(ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_historico, parent, false);
-            return new VH(v);
-        }
-
-        @Override
-        public void onBindViewHolder(VH holder, int position) {
-            Historico h = lista.get(position);
-            holder.tvData.setText("📅 " + (h.getDataEvento() != null ? h.getDataEvento() : "—"));
-            holder.tvDesc.setText(h.getDescricao() != null ? h.getDescricao() : "Sem descrição.");
-        }
-
-        @Override
-        public int getItemCount() { return lista.size(); }
-
-        static class VH extends RecyclerView.ViewHolder {
-            final TextView tvData, tvDesc;
-            VH(View itemView) {
-                super(itemView);
-                tvData = itemView.findViewById(R.id.tvHistData);
-                tvDesc = itemView.findViewById(R.id.tvHistDesc);
-            }
-        }
     }
 }

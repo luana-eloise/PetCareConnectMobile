@@ -14,7 +14,11 @@ import com.unip.petcareconnect.model.Pet;
 
 import java.util.List;
 
+/**
+ * Adapter do RecyclerView para listagem de pets do Tutor.
+ */
 public class PetAdapter extends RecyclerView.Adapter<PetAdapter.ViewHolder> {
+
     private final List<Pet> pets;
     private final OnPetActionListener listener;
 
@@ -39,24 +43,35 @@ public class PetAdapter extends RecyclerView.Adapter<PetAdapter.ViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Pet pet = pets.get(position);
-        holder.tvNome.setText(pet.getNome());
-        holder.tvIdadeBadge.setText(pet.getIdade() + " ano(s)");
-        holder.tvTipoRaca.setText(pet.getTipo() + " • Raça: " + (pet.getRaca() != null ? pet.getRaca() : "SRD"));
-        holder.tvPeso.setText("Peso: " + pet.getPeso() + " kg");
+        if (pet == null) return;
 
-        holder.itemView.setOnClickListener(v -> listener.onPetClick(pet));
-        holder.btnEditar.setOnClickListener(v -> listener.onEdit(pet));
-        holder.btnExcluir.setOnClickListener(v -> listener.onDelete(pet));
+        holder.tvNome.setText(pet.getNome() != null ? pet.getNome() : "Sem nome");
+        holder.tvIdadeBadge.setText(pet.getIdadeFormatada());
+        
+        String raca = (pet.getRaca() != null && !pet.getRaca().trim().isEmpty()) ? pet.getRaca() : "SRD";
+        String especie = pet.getEspecie() != null ? pet.getEspecie() : "Pet";
+        holder.tvTipoRaca.setText(especie + " • Raça: " + raca);
+        holder.tvPeso.setText("Peso: " + pet.getPesoFormatado());
+
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) listener.onPetClick(pet);
+        });
+        holder.btnEditar.setOnClickListener(v -> {
+            if (listener != null) listener.onEdit(pet);
+        });
+        holder.btnExcluir.setOnClickListener(v -> {
+            if (listener != null) listener.onDelete(pet);
+        });
     }
 
     @Override
     public int getItemCount() {
-        return pets.size();
+        return pets != null ? pets.size() : 0;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvNome, tvIdadeBadge, tvTipoRaca, tvPeso;
-        Button btnEditar, btnExcluir;
+        final TextView tvNome, tvIdadeBadge, tvTipoRaca, tvPeso;
+        final Button btnEditar, btnExcluir;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);

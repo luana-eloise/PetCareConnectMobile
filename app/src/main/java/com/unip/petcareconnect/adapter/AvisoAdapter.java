@@ -15,7 +15,11 @@ import com.unip.petcareconnect.model.Aviso;
 
 import java.util.List;
 
+/**
+ * Adapter do RecyclerView para listagem de avisos e notificações do Tutor.
+ */
 public class AvisoAdapter extends RecyclerView.Adapter<AvisoAdapter.ViewHolder> {
+
     private final List<Aviso> avisos;
     private final OnAvisoActionListener listener;
 
@@ -39,8 +43,10 @@ public class AvisoAdapter extends RecyclerView.Adapter<AvisoAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Aviso a = avisos.get(position);
-        holder.tvTitulo.setText(a.getTitulo());
-        holder.tvTexto.setText(a.getTexto());
+        if (a == null) return;
+
+        holder.tvTitulo.setText(a.getTitulo() != null ? a.getTitulo() : "Aviso");
+        holder.tvTexto.setText(a.getTexto() != null ? a.getTexto() : "");
 
         if (a.isLido()) {
             holder.tvStatus.setText("Lido");
@@ -48,28 +54,30 @@ public class AvisoAdapter extends RecyclerView.Adapter<AvisoAdapter.ViewHolder> 
             holder.tvStatus.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.teal_dark));
             holder.btnLido.setText("Marcar como não lido");
             holder.btnLido.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.text_muted));
-            holder.btnLido.setVisibility(View.VISIBLE);
         } else {
             holder.tvStatus.setText("Novo");
             holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_yellow);
             holder.tvStatus.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.status_yellow));
             holder.btnLido.setText("Marcar como lido");
             holder.btnLido.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.teal_primary));
-            holder.btnLido.setVisibility(View.VISIBLE);
         }
 
-        holder.itemView.setOnClickListener(v -> listener.onAvisoClick(a));
-        holder.btnLido.setOnClickListener(v -> listener.onToggleLido(a));
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) listener.onAvisoClick(a);
+        });
+        holder.btnLido.setOnClickListener(v -> {
+            if (listener != null) listener.onToggleLido(a);
+        });
     }
 
     @Override
     public int getItemCount() {
-        return avisos.size();
+        return avisos != null ? avisos.size() : 0;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvTitulo, tvTexto, tvStatus;
-        Button btnLido;
+        final TextView tvTitulo, tvTexto, tvStatus;
+        final Button btnLido;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
