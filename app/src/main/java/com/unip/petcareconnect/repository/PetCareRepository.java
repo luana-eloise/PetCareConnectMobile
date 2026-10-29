@@ -125,6 +125,14 @@ public class PetCareRepository {
                     processarLoginComSucesso(response.body().getDados(), callback);
                     return;
                 }
+
+                // Trata códigos de erro HTTP da API (400, 401, 403, etc.)
+                String erroMensagem = extrairMensagemErro(response);
+                if (erroMensagem != null && !erroMensagem.isEmpty()) {
+                    callback.onError(erroMensagem);
+                    return;
+                }
+
                 autenticarOffline(login, senha, callback);
             }
 
@@ -133,6 +141,29 @@ public class PetCareRepository {
                 autenticarOffline(login, senha, callback);
             }
         });
+    }
+
+    private <T> String extrairMensagemErro(Response<ApiResponse<T>> response) {
+        if (response == null) return null;
+        try {
+            if (response.errorBody() != null) {
+                String errorJson = response.errorBody().string();
+                if (errorJson != null && !errorJson.trim().isEmpty()) {
+                    ApiResponse<?> apiResp = gson.fromJson(errorJson, ApiResponse.class);
+                    if (apiResp != null && apiResp.getMensagem() != null && !apiResp.getMensagem().isEmpty()) {
+                        return apiResp.getMensagem();
+                    }
+                }
+            }
+            if (response.code() == 400) {
+                return "Login ou senha inválidos.";
+            } else if (response.code() == 401) {
+                return "Sessão expirada ou não autorizada. Faça login novamente.";
+            } else if (response.code() == 403) {
+                return "Acesso negado: este aplicativo é exclusivo para Tutores.";
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 
     public void login(String login, String senha, String perfil, Callback<LoginResponse> callback) {

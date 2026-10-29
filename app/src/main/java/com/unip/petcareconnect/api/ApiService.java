@@ -46,13 +46,6 @@ public interface ApiService {
     @POST("api/Consultas")
     Call<ApiResponse<Integer>> criarConsulta(@Body Consulta consulta);
 
-    @PATCH("api/Consultas/{id}/status")
-    Call<ApiResponse<Void>> atualizarStatusConsulta(
-            @Path("id") int id,
-            @Query("status") String status,
-            @Query("obs") String obs
-    );
-
     @POST("api/Consultas/{id}/cancelar")
     Call<ApiResponse<Void>> cancelarConsulta(@Path("id") int id);
 
@@ -61,23 +54,10 @@ public interface ApiService {
     @GET("api/Vacinas/{petId}")
     Call<ApiResponse<List<Vacina>>> listarVacinas(@Path("petId") int petId);
 
-    @POST("api/Vacinas")
-    Call<ApiResponse<Integer>> criarVacina(@Body Vacina vacina);
-
-    @PATCH("api/Vacinas/{id}/aplicar")
-    Call<ApiResponse<Void>> aplicarVacina(
-            @Path("id") int id,
-            @Query("data") String data,
-            @Query("obs") String obs
-    );
-
     // ── HISTÓRICO CLÍNICO DO PET ──
 
     @GET("api/Historico/{petId}")
     Call<ApiResponse<List<Historico>>> listarHistorico(@Path("petId") int petId);
-
-    @POST("api/Historico")
-    Call<ApiResponse<Integer>> adicionarHistorico(@Body Historico historico);
 
     // ── PRONTUÁRIOS E LAUDOS CLÍNICOS ──
 
