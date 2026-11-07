@@ -30,11 +30,10 @@ public interface ApiService {
     Call<ApiResponse<Pet>> buscarPetPorId(@Path("id") int id);
 
     @POST("api/Pets")
-    Call<ApiResponse<Integer>> criarPet(@Body Pet pet);
+    Call<ApiResponse<Integer>> criarPet(@Body PetRequest pet);
 
     @PATCH("api/Pets/{id}")
-    Call<ApiResponse<Void>> atualizarPet(@Path("id") int id, @Body Pet pet);
-
+    Call<ApiResponse<Void>> atualizarPet(@Path("id") int id, @Body PetRequest pet);
     @DELETE("api/Pets/{id}")
     Call<ApiResponse<Void>> removerPet(@Path("id") int id);
 

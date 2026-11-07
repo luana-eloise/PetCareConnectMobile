@@ -1,46 +1,27 @@
 package com.unip.petcareconnect.model;
 
-import com.google.gson.annotations.SerializedName;
 import java.io.Serializable;
 import java.util.Locale;
 import java.util.Objects;
 
 /**
- * Representa o animal de estimação vinculado ao Tutor autenticado.
+ * Pet como a API devolve: {id, nome, tipo, raca, idade, peso, tutorId, tutorNome, criadoEm}.
+ * raca, idade e peso podem vir null.
  */
-@SuppressWarnings("unused")
 public class Pet implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int id;
     private String nome;
-
-    @SerializedName(value = "especie", alternate = {"tipo"})
-    private String especie;
-
-    private String raca; // Requisito RF-002 do PIM
-    private int idade;
-    private double peso;
+    private String tipo;
+    private String raca;
+    private Integer idade;
+    private Double peso;
     private int tutorId;
     private String tutorNome;
-    private String criadoEm;
-    private boolean ativo = true;
+    private String criadoEm; // "dd/MM/yyyy HH:mm"
 
-    public Pet() {
-        this.ativo = true;
-    }
-
-    public Pet(int id, String nome, String especie, String raca, int idade, double peso, int tutorId, String tutorNome) {
-        this.id = id;
-        this.nome = nome != null ? nome.trim() : "";
-        this.especie = especie != null ? especie.trim() : "";
-        this.raca = (raca != null && !raca.trim().isEmpty()) ? raca.trim() : "SRD";
-        this.idade = Math.max(0, idade);
-        this.peso = Math.max(0.0, peso);
-        this.tutorId = tutorId;
-        this.tutorNome = tutorNome != null ? tutorNome.trim() : "";
-        this.ativo = true;
-    }
+    public Pet() {}
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -48,38 +29,42 @@ public class Pet implements Serializable {
     public String getNome() { return nome != null ? nome : ""; }
     public void setNome(String nome) { this.nome = nome != null ? nome.trim() : ""; }
 
-    public String getEspecie() { return especie != null ? especie : ""; }
-    public void setEspecie(String especie) { this.especie = especie != null ? especie.trim() : ""; }
+    public String getTipo() { return tipo != null ? tipo : ""; }
+    public void setTipo(String tipo) { this.tipo = tipo != null ? tipo.trim() : ""; }
 
-    public String getTipo() { return getEspecie(); }
-    public void setTipo(String tipo) { setEspecie(tipo); }
+    // Compatibilidade com código antigo ("especie" = "tipo")
+    public String getEspecie() { return getTipo(); }
+    public void setEspecie(String especie) { setTipo(especie); }
 
-    public String getRaca() { return (raca != null && !raca.trim().isEmpty()) ? raca : "SRD"; }
-    public void setRaca(String raca) { this.raca = (raca != null && !raca.trim().isEmpty()) ? raca.trim() : "SRD"; }
+    /** Vazio quando a API manda null (não inventa "SRD"). */
+    public String getRaca() { return raca != null ? raca : ""; }
+    public void setRaca(String raca) {
+        this.raca = (raca != null && !raca.trim().isEmpty()) ? raca.trim() : null;
+    }
 
-    public int getIdade() { return idade; }
-    public void setIdade(int idade) { this.idade = Math.max(0, idade); }
+    /** Valor real da API; pode ser null. */
+    public Integer getIdadeValor() { return idade; }
+    public Double getPesoValor() { return peso; }
+    public void setIdade(Integer idade) { this.idade = idade; }
+    public void setPeso(Double peso) { this.peso = peso; }
 
-    public double getPeso() { return peso; }
-    public void setPeso(double peso) { this.peso = Math.max(0.0, peso); }
+    // Compatibilidade: 0 quando null. Para saber se existe, use os "Valor".
+    public int getIdade() { return idade != null ? idade : 0; }
+    public double getPeso() { return peso != null ? peso : 0.0; }
 
     public int getTutorId() { return tutorId; }
-    public void setTutorId(int tutorId) { this.tutorId = tutorId; }
-
     public String getTutorNome() { return tutorNome != null ? tutorNome : ""; }
-    public void setTutorNome(String tutorNome) { this.tutorNome = tutorNome != null ? tutorNome.trim() : ""; }
-
     public String getCriadoEm() { return criadoEm; }
-    public void setCriadoEm(String criadoEm) { this.criadoEm = criadoEm; }
 
-    public boolean isAtivo() { return ativo; }
-    public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    /** O back só devolve pets existentes. */
+    public boolean isAtivo() { return true; }
 
     public String getPesoFormatado() {
-        return String.format(Locale.getDefault(), "%.1f kg", peso);
+        return peso != null ? String.format(Locale.getDefault(), "%.1f kg", peso) : "Peso não informado";
     }
 
     public String getIdadeFormatada() {
+        if (idade == null) return "Idade não informada";
         if (idade <= 0) return "Menos de 1 ano";
         if (idade == 1) return "1 ano";
         return idade + " anos";
@@ -89,12 +74,9 @@ public class Pet implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Pet pet = (Pet) o;
-        return id == pet.id;
+        return id == ((Pet) o).id;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
+    public int hashCode() { return Objects.hash(id); }
 }

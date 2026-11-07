@@ -146,11 +146,11 @@ public class PetsActivity extends AppCompatActivity {
         if (isEdit) {
             etNomePet.setText(petExistente.getNome());
             etRaca.setText(petExistente.getRaca());
-            if (petExistente.getIdade() > 0) etIdade.setText(String.valueOf(petExistente.getIdade()));
-            if (petExistente.getPeso()  > 0) etPeso.setText(String.valueOf(petExistente.getPeso()));
+            if (petExistente.getIdadeValor() != null) etIdade.setText(String.valueOf(petExistente.getIdadeValor()));
+            if (petExistente.getPesoValor() != null) etPeso.setText(String.valueOf(petExistente.getPesoValor()));
 
             for (int i = 0; i < especies.length; i++) {
-                if (especies[i].equalsIgnoreCase(petExistente.getEspecie())) {
+                if (especies[i].equalsIgnoreCase(petExistente.getTipo())) {
                     spinnerEspecie.setSelection(i);
                     break;
                 }
@@ -162,29 +162,37 @@ public class PetsActivity extends AppCompatActivity {
                 .setView(dialogView)
                 .setPositiveButton("Salvar", (dialog, which) -> {
                     String nome     = etNomePet.getText().toString().trim();
-                    String especie  = spinnerEspecie.getSelectedItem().toString();
+                    String tipo     = spinnerEspecie.getSelectedItem().toString();
                     String raca     = etRaca.getText().toString().trim();
                     String idadeStr = etIdade.getText().toString().trim();
-                    String pesoStr  = etPeso.getText().toString().trim();
+                    String pesoStr  = etPeso.getText().toString().trim().replace(',', '.');
 
                     if (TextUtils.isEmpty(nome)) {
                         Toast.makeText(this, "Nome do pet é obrigatório!", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    int idade = 0;
+                    Integer idade = null;
                     if (!TextUtils.isEmpty(idadeStr)) {
-                        try { idade = Integer.parseInt(idadeStr); } catch (Exception ignored) {}
+                        try { idade = Integer.parseInt(idadeStr); }
+                        catch (NumberFormatException e) {
+                            Toast.makeText(this, "Idade inválida.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                     }
 
-                    double peso = 0.0;
+                    Double peso = null;
                     if (!TextUtils.isEmpty(pesoStr)) {
-                        try { peso = Double.parseDouble(pesoStr); } catch (Exception ignored) {}
+                        try { peso = Double.parseDouble(pesoStr); }
+                        catch (NumberFormatException e) {
+                            Toast.makeText(this, "Peso inválido.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                     }
 
                     if (isEdit) {
                         petExistente.setNome(nome);
-                        petExistente.setEspecie(especie);
+                        petExistente.setTipo(tipo);
                         petExistente.setRaca(raca);
                         petExistente.setIdade(idade);
                         petExistente.setPeso(peso);
@@ -199,17 +207,16 @@ public class PetsActivity extends AppCompatActivity {
                             @Override
                             public void onError(String mensagem) {
                                 Toast.makeText(PetsActivity.this, "Erro: " + mensagem, Toast.LENGTH_LONG).show();
+                                carregarPets(); // descarta a edição local que a API recusou
                             }
                         });
                     } else {
                         Pet novoPet = new Pet();
                         novoPet.setNome(nome);
-                        novoPet.setEspecie(especie);
+                        novoPet.setTipo(tipo);
                         novoPet.setRaca(raca);
                         novoPet.setIdade(idade);
                         novoPet.setPeso(peso);
-                        novoPet.setTutorId(sessionManager.getUserId());
-                        novoPet.setTutorNome(sessionManager.getNome());
 
                         repository.adicionarPet(novoPet, new PetCareRepository.RepositoryCallback<Pet>() {
                             @Override

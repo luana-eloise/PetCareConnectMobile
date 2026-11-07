@@ -15,6 +15,7 @@ import com.unip.petcareconnect.model.Historico;
 import com.unip.petcareconnect.model.LoginRequest;
 import com.unip.petcareconnect.model.LoginResponse;
 import com.unip.petcareconnect.model.Pet;
+import com.unip.petcareconnect.model.PetRequest;
 import com.unip.petcareconnect.model.Relatorio;
 import com.unip.petcareconnect.model.Vacina;
 import com.unip.petcareconnect.util.SessionManager;
@@ -35,15 +36,16 @@ import retrofit2.Call;
 import retrofit2.Response;
 
 /**
- * Repositório central de dados do aplicativo PetCare Connect Mobile.
- * Implementa o padrão Repository com sincronização híbrida (Cache Local Offline + API REST Online).
- * Escopo exclusivo para as operações e regras de negócio do perfil de Tutor.
+ * Repositório central de dados do PetCare Connect Mobile (perfil Tutor).
+ * Login e Pets: API-first. Demais áreas ainda usam cache local (passos 3 a 5).
  */
 @SuppressWarnings("unused")
 public class PetCareRepository {
 
     private static final String PREF_DATA = "petcare_mobile_local_db";
     public static final String PREFIXO_ERRO_PERFIL = "Esta conta não é de Tutor";
+    private static final String MSG_SERVIDOR_ACORDANDO =
+            "Servidor acordando, tente novamente em instantes.";
 
     private final Context context;
     private final SessionManager session;
@@ -66,15 +68,11 @@ public class PetCareRepository {
     }
 
     // =========================================================================
-    // SEED DE DADOS LOCAIS (SUPORTE OFFLINE DO PIM IV)
+    // SEED LOCAL (TEMPORÁRIO: sai nos passos 3 e 4). Pets não têm mais seed.
     // =========================================================================
 
     private void inicializarBaseLocalSeVazia() {
         if (!dataPref.getBoolean("initialized", false)) {
-            List<Pet> pets = new ArrayList<>();
-            pets.add(new Pet(1, "Rex", "Cachorro", "Labrador Retriever", 3, 25.5, 1, "Maria Oliveira"));
-            pets.add(new Pet(2, "Mia", "Gato", "Siamês", 2, 4.2, 1, "Maria Oliveira"));
-
             List<Consulta> consultas = new ArrayList<>();
             consultas.add(new Consulta(1, 1, "Rex", 2, "Dr. Carlos Mendes", "15/10/2026", "14:00", Consulta.STATUS_MARCADA, "Consulta de rotina anual"));
             consultas.add(new Consulta(2, 2, "Mia", 2, "Dr. Carlos Mendes", "01/09/2026", "10:30", Consulta.STATUS_REALIZADA, "Exame clínico concluído com sucesso"));
@@ -103,7 +101,6 @@ public class PetCareRepository {
             avisos.add(new Aviso(2, "Consulta Confirmada", "Consulta de Rex confirmada para 15/10/2026 às 14:00 com Dr. Carlos Mendes.", Aviso.TIPO_CONSULTA, 1, 1, false));
             avisos.add(new Aviso(3, "Vacina Pendente", "A vacina de Giárdia do Rex está pendente para agendamento.", Aviso.TIPO_PET, 1, 1, false));
 
-            salvarLista("pets", pets);
             salvarLista("consultas", consultas);
             salvarLista("vacinas", vacinas);
             salvarLista("historico", historicos);
@@ -128,38 +125,11 @@ public class PetCareRepository {
     }
 
     // =========================================================================
-    // AUTENTICAÇÃO E CADASTRO EXCLUSIVOS DO TUTOR
+    // ERROS
     // =========================================================================
-    private static final String MSG_SERVIDOR_ACORDANDO =
-            "Servidor acordando, tente novamente em instantes.";
-
-    public void login(String login, String senha, Callback<LoginResponse> callback) {
-        ApiService api = ApiClient.getService(context);
-        api.login(new LoginRequest(login, senha)).enqueue(new retrofit2.Callback<ApiResponse<LoginResponse>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<LoginResponse>> call, Response<ApiResponse<LoginResponse>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()
-                        && response.body().getDados() != null) {
-                    processarLoginComSucesso(response.body().getDados(), callback);
-                    return;
-                }
-                callback.onError(mensagemDeErro(response));
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<LoginResponse>> call, Throwable t) {
-                // Timeout, sem internet, DNS ou conexão recusada
-                callback.onError(MSG_SERVIDOR_ACORDANDO);
-            }
-        });
-    }
-
-    public void login(String login, String senha, String perfil, Callback<LoginResponse> callback) {
-        login(login, senha, callback);
-    }
 
     /**
-     * Monta a mensagem de erro: envelope da API quando existir; 5xx vira "servidor acordando"
+     * Mensagem de erro: envelope da API quando existir; 5xx vira "servidor acordando"
      * (o Render responde 502/503 durante o boot).
      */
     private <T> String mensagemDeErro(Response<ApiResponse<T>> response) {
@@ -186,6 +156,35 @@ public class PetCareRepository {
         return "Não foi possível concluir a operação (HTTP " + code + ").";
     }
 
+    // =========================================================================
+    // AUTENTICAÇÃO
+    // =========================================================================
+
+    public void login(String login, String senha, Callback<LoginResponse> callback) {
+        ApiService api = ApiClient.getService(context);
+        api.login(new LoginRequest(login, senha)).enqueue(new retrofit2.Callback<ApiResponse<LoginResponse>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<LoginResponse>> call, Response<ApiResponse<LoginResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()
+                        && response.body().getDados() != null) {
+                    processarLoginComSucesso(response.body().getDados(), callback);
+                    return;
+                }
+                callback.onError(mensagemDeErro(response));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<LoginResponse>> call, Throwable t) {
+                // Timeout, sem internet, DNS ou conexão recusada
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
+            }
+        });
+    }
+
+    public void login(String login, String senha, String perfil, Callback<LoginResponse> callback) {
+        login(login, senha, callback);
+    }
+
     private void processarLoginComSucesso(LoginResponse data, Callback<LoginResponse> callback) {
         String perfil = data.getPerfil();
         boolean ehTutor = perfil != null && SessionManager.PERFIL_TUTOR.equalsIgnoreCase(perfil.trim());
@@ -197,6 +196,11 @@ public class PetCareRepository {
         session.salvarSessao(data.getToken(), data.getUsuarioId(), data.getNome(), data.getLogin(), perfil);
         callback.onSuccess(data);
     }
+
+    // =========================================================================
+    // CADASTRO (ainda com fallback falso: sai no passo 5)
+    // =========================================================================
+
     public void cadastrarTutor(String nome, String login, String email, String senha, Callback<Boolean> callback) {
         cadastrarTutor(nome, login, email, senha, null, callback);
     }
@@ -206,16 +210,12 @@ public class PetCareRepository {
         api.cadastrar(new CadastroRequest(nome, login, email, senha, telefone)).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
             @Override
             public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
-                    callback.onSuccess(true);
-                } else {
-                    callback.onSuccess(true); // Fallback offline
-                }
+                callback.onSuccess(true); // TODO passo 5
             }
 
             @Override
             public void onFailure(Call<ApiResponse<Integer>> call, Throwable t) {
-                callback.onSuccess(true); // Sucesso em modo offline
+                callback.onSuccess(true); // TODO passo 5
             }
         });
     }
@@ -225,26 +225,27 @@ public class PetCareRepository {
     }
 
     // =========================================================================
-    // GERENCIAMENTO DE PETS (CRUD)
+    // PETS (API-first)
     // =========================================================================
 
     public void listarPets(Callback<List<Pet>> callback) {
-        ApiService api = ApiClient.getService(context);
-        api.listarPets().enqueue(new retrofit2.Callback<ApiResponse<List<Pet>>>() {
+        ApiClient.getService(context).listarPets().enqueue(new retrofit2.Callback<ApiResponse<List<Pet>>>() {
             @Override
             public void onResponse(Call<ApiResponse<List<Pet>>> call, Response<ApiResponse<List<Pet>>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().getDados() != null) {
-                    List<Pet> pets = response.body().getDados();
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    List<Pet> pets = response.body().getDados() != null
+                            ? response.body().getDados() : new ArrayList<Pet>();
+                    // Cópia só de leitura, usada por consultas/vacinas até os próximos passos
                     salvarLista("pets", pets);
                     callback.onSuccess(pets);
                     return;
                 }
-                callback.onSuccess(obterPetsLocais());
+                callback.onError(mensagemDeErro(response));
             }
 
             @Override
             public void onFailure(Call<ApiResponse<List<Pet>>> call, Throwable t) {
-                callback.onSuccess(obterPetsLocais());
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
             }
         });
     }
@@ -254,77 +255,64 @@ public class PetCareRepository {
         return obterLista("pets", type);
     }
 
+    /** Só dá sucesso se a API criar. A tela recarrega a lista pelo GET depois. */
     public void adicionarPet(Pet pet, Callback<Pet> callback) {
-        salvarPet(pet, new Callback<Boolean>() {
+        ApiClient.getService(context).criarPet(new PetRequest(pet)).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
             @Override
-            public void onSuccess(Boolean result) {
-                callback.onSuccess(pet);
+            public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    callback.onSuccess(pet);
+                } else {
+                    callback.onError(mensagemDeErro(response));
+                }
             }
 
             @Override
-            public void onError(String message) {
-                callback.onError(message);
+            public void onFailure(Call<ApiResponse<Integer>> call, Throwable t) {
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
             }
         });
     }
 
+    /** Envia o pet completo (o back não confirmou o que acontece com campo ausente no PATCH). */
     public void atualizarPet(Pet pet, Callback<Boolean> callback) {
-        salvarPet(pet, callback);
-    }
-
-    public void salvarPet(Pet pet, Callback<Boolean> callback) {
-        List<Pet> pets = obterPetsLocais();
-        boolean isNovo = (pet.getId() == 0);
-
-        if (isNovo) {
-            int novoId = pets.isEmpty() ? 1 : pets.get(pets.size() - 1).getId() + 1;
-            pet.setId(novoId);
-            pet.setTutorId(session.getUserId());
-            pet.setTutorNome(session.getNome());
-            pets.add(pet);
-        } else {
-            for (int i = 0; i < pets.size(); i++) {
-                if (pets.get(i).getId() == pet.getId()) {
-                    pets.set(i, pet);
-                    break;
+        ApiClient.getService(context).atualizarPet(pet.getId(), new PetRequest(pet)).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    callback.onSuccess(true);
+                } else {
+                    callback.onError(mensagemDeErro(response));
                 }
             }
-        }
-        salvarLista("pets", pets);
 
-        // Sincronização em segundo plano com a API
-        ApiService api = ApiClient.getService(context);
-        if (isNovo) {
-            api.criarPet(pet).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
-                @Override public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {}
-                @Override public void onFailure(Call<ApiResponse<Integer>> call, Throwable t) {}
-            });
-        } else {
-            api.atualizarPet(pet.getId(), pet).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
-                @Override public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {}
-                @Override public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {}
-            });
-        }
-
-        callback.onSuccess(true);
+            @Override
+            public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
+            }
+        });
     }
 
     public void excluirPet(int petId, Callback<Boolean> callback) {
-        List<Pet> pets = obterPetsLocais();
-        pets.removeIf(p -> p.getId() == petId);
-        salvarLista("pets", pets);
+        ApiClient.getService(context).removerPet(petId).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    callback.onSuccess(true);
+                } else {
+                    callback.onError(mensagemDeErro(response));
+                }
+            }
 
-        ApiService api = ApiClient.getService(context);
-        api.removerPet(petId).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
-            @Override public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {}
-            @Override public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {}
+            @Override
+            public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
+            }
         });
-
-        callback.onSuccess(true);
     }
 
     // =========================================================================
-    // CONSULTAS VETERINÁRIAS (AGENDAMENTO, REGRAS RN-002 E RN-005)
+    // CONSULTAS (ainda local/híbrido: passo 3)
     // =========================================================================
 
     public void listarConsultas(Callback<List<Consulta>> callback) {
@@ -353,9 +341,6 @@ public class PetCareRepository {
         return obterLista("consultas", type);
     }
 
-    /**
-     * Retorna exclusivamente as consultas pertencentes aos pets do Tutor logado.
-     */
     public void listarConsultasDoPerfil(Callback<List<Consulta>> callback) {
         listarConsultas(new Callback<List<Consulta>>() {
             @Override
@@ -388,7 +373,6 @@ public class PetCareRepository {
     public void agendarConsulta(Consulta consulta, Callback<Consulta> callback) {
         List<Consulta> lista = obterConsultasLocais();
 
-        // RN-002: Verificação de conflito de horário
         for (Consulta c : lista) {
             if (c.getData().equalsIgnoreCase(consulta.getData()) &&
                     c.getHora().equalsIgnoreCase(consulta.getHora()) &&
@@ -405,7 +389,6 @@ public class PetCareRepository {
         lista.add(0, consulta);
         salvarLista("consultas", lista);
 
-        // Envio online em segundo plano
         ApiService api = ApiClient.getService(context);
         api.criarConsulta(consulta).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
             @Override public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {}
@@ -415,11 +398,6 @@ public class PetCareRepository {
         callback.onSuccess(consulta);
     }
 
-    /**
-     * Regra RN-005:
-     * - Cancelamento com >= 24h: status "Cancelada"
-     * - Cancelamento com < 24h: status "NaoCompareceu" (penalidade)
-     */
     public void cancelarConsulta(int id, Callback<Boolean> callback) {
         List<Consulta> lista = obterConsultasLocais();
         for (Consulta c : lista) {
@@ -428,7 +406,6 @@ public class PetCareRepository {
                 c.setStatus(novoStatus);
                 salvarLista("consultas", lista);
 
-                // Notifica o backend online
                 ApiService api = ApiClient.getService(context);
                 api.cancelarConsulta(id).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
                     @Override public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {}
@@ -446,7 +423,6 @@ public class PetCareRepository {
         if (dataStr == null || dataStr.trim().isEmpty()) {
             return Consulta.STATUS_CANCELADA;
         }
-
         try {
             String horaFormatada = (horaStr != null && !horaStr.trim().isEmpty()) ? horaStr.trim() : "00:00";
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
@@ -455,20 +431,17 @@ public class PetCareRepository {
 
             if (dataConsulta != null) {
                 long diffMs = dataConsulta.getTime() - System.currentTimeMillis();
-                long vinteEQuatroHorasMs = 24L * 60L * 60L * 1000L;
-                if (diffMs < vinteEQuatroHorasMs) {
+                if (diffMs < 24L * 60L * 60L * 1000L) {
                     return Consulta.STATUS_NAO_COMPARECEU;
                 }
             }
         } catch (ParseException ignored) {
-            // Se houver erro de formato, adota cancelamento padrão seguro
         }
         return Consulta.STATUS_CANCELADA;
     }
 
-
     // =========================================================================
-    // VACINAS, HISTÓRICO, RELATÓRIOS E AVISOS DO TUTOR
+    // VACINAS, HISTÓRICO, RELATÓRIOS E AVISOS (ainda locais: passo 4)
     // =========================================================================
 
     public void listarTodasVacinas(Callback<List<Vacina>> callback) {
@@ -572,7 +545,6 @@ public class PetCareRepository {
         }
         salvarLista("avisos", avisos);
 
-        // Notifica backend em segundo plano
         if (lido) {
             ApiService api = ApiClient.getService(context);
             api.marcarAvisoLido(avisoId).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
