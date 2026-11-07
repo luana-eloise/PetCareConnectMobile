@@ -3,9 +3,8 @@ package com.unip.petcareconnect.model;
 import java.io.Serializable;
 
 /**
- * Resposta de sucesso na autenticação do Tutor contendo o token JWT e credenciais de sessão.
+ * Campo "dados" do login: token, usuarioId, nome, login, perfil.
  */
-@SuppressWarnings("unused")
 public class LoginResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -15,36 +14,13 @@ public class LoginResponse implements Serializable {
     private String login;
     private String perfil;
 
-    public LoginResponse() {
-        this.perfil = "Tutor";
-    }
-
-    public LoginResponse(String token, int usuarioId, String nome, String login, String perfil) {
-        this.token = token;
-        this.usuarioId = usuarioId;
-        this.nome = nome;
-        this.login = login;
-        this.perfil = (perfil != null && !perfil.trim().isEmpty()) ? perfil : "Tutor";
-    }
+    public LoginResponse() {}
 
     public String getToken() { return token; }
-    public void setToken(String token) { this.token = token; }
-
     public int getUsuarioId() { return usuarioId; }
-    public void setUsuarioId(int usuarioId) { this.usuarioId = usuarioId; }
-
-    public int getUserId() { return usuarioId; }
-
     public String getNome() { return nome != null ? nome : ""; }
-    public void setNome(String nome) { this.nome = nome; }
-
     public String getLogin() { return login != null ? login : ""; }
-    public void setLogin(String login) { this.login = login; }
 
-    public String getEmail() { return login; }
-
-    public String getPerfil() { return perfil != null ? perfil : "Tutor"; }
-    public void setPerfil(String perfil) { this.perfil = perfil; }
-
-    public String getRole() { return getPerfil(); }
+    /** Pode ser null se a API não enviar. Quem chama deve tratar. */
+    public String getPerfil() { return perfil; }
 }

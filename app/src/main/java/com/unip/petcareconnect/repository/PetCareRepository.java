@@ -7,13 +7,29 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.unip.petcareconnect.api.ApiClient;
 import com.unip.petcareconnect.api.ApiService;
-import com.unip.petcareconnect.model.*;
+import com.unip.petcareconnect.model.ApiResponse;
+import com.unip.petcareconnect.model.Aviso;
+import com.unip.petcareconnect.model.CadastroRequest;
+import com.unip.petcareconnect.model.Consulta;
+import com.unip.petcareconnect.model.Historico;
+import com.unip.petcareconnect.model.LoginRequest;
+import com.unip.petcareconnect.model.LoginResponse;
+import com.unip.petcareconnect.model.Pet;
+import com.unip.petcareconnect.model.Relatorio;
+import com.unip.petcareconnect.model.Vacina;
 import com.unip.petcareconnect.util.SessionManager;
 
 import java.lang.reflect.Type;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import retrofit2.Call;
 import retrofit2.Response;
@@ -27,7 +43,7 @@ import retrofit2.Response;
 public class PetCareRepository {
 
     private static final String PREF_DATA = "petcare_mobile_local_db";
-    public static final String PREFIXO_ERRO_PERFIL = "Esta conta é de perfil";
+    public static final String PREFIXO_ERRO_PERFIL = "Esta conta não é de Tutor";
 
     private final Context context;
     private final SessionManager session;
@@ -114,6 +130,8 @@ public class PetCareRepository {
     // =========================================================================
     // AUTENTICAÇÃO E CADASTRO EXCLUSIVOS DO TUTOR
     // =========================================================================
+    private static final String MSG_SERVIDOR_ACORDANDO =
+            "Servidor acordando, tente novamente em instantes.";
 
     public void login(String login, String senha, Callback<LoginResponse> callback) {
         ApiService api = ApiClient.getService(context);
@@ -125,72 +143,60 @@ public class PetCareRepository {
                     processarLoginComSucesso(response.body().getDados(), callback);
                     return;
                 }
-
-                // Trata códigos de erro HTTP da API (400, 401, 403, etc.)
-                String erroMensagem = extrairMensagemErro(response);
-                if (erroMensagem != null && !erroMensagem.isEmpty()) {
-                    callback.onError(erroMensagem);
-                    return;
-                }
-
-                autenticarOffline(login, senha, callback);
+                callback.onError(mensagemDeErro(response));
             }
 
             @Override
             public void onFailure(Call<ApiResponse<LoginResponse>> call, Throwable t) {
-                autenticarOffline(login, senha, callback);
+                // Timeout, sem internet, DNS ou conexão recusada
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
             }
         });
-    }
-
-    private <T> String extrairMensagemErro(Response<ApiResponse<T>> response) {
-        if (response == null) return null;
-        try {
-            if (response.errorBody() != null) {
-                String errorJson = response.errorBody().string();
-                if (errorJson != null && !errorJson.trim().isEmpty()) {
-                    ApiResponse<?> apiResp = gson.fromJson(errorJson, ApiResponse.class);
-                    if (apiResp != null && apiResp.getMensagem() != null && !apiResp.getMensagem().isEmpty()) {
-                        return apiResp.getMensagem();
-                    }
-                }
-            }
-            if (response.code() == 400) {
-                return "Login ou senha inválidos.";
-            } else if (response.code() == 401) {
-                return "Sessão expirada ou não autorizada. Faça login novamente.";
-            } else if (response.code() == 403) {
-                return "Acesso negado: este aplicativo é exclusivo para Tutores.";
-            }
-        } catch (Exception ignored) {}
-        return null;
     }
 
     public void login(String login, String senha, String perfil, Callback<LoginResponse> callback) {
         login(login, senha, callback);
     }
 
+    /**
+     * Monta a mensagem de erro: envelope da API quando existir; 5xx vira "servidor acordando"
+     * (o Render responde 502/503 durante o boot).
+     */
+    private <T> String mensagemDeErro(Response<ApiResponse<T>> response) {
+        int code = response.code();
+        if (code >= 500) {
+            return MSG_SERVIDOR_ACORDANDO;
+        }
+        try {
+            if (response.errorBody() != null) {
+                String json = response.errorBody().string();
+                if (json != null && !json.trim().isEmpty()) {
+                    ApiResponse<?> envelope = gson.fromJson(json, ApiResponse.class);
+                    if (envelope != null && !envelope.getMensagem().isEmpty()) {
+                        return envelope.getMensagem();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // corpo não era JSON do envelope
+        }
+        if (response.body() != null && !response.body().getMensagem().isEmpty()) {
+            return response.body().getMensagem();
+        }
+        return "Não foi possível concluir a operação (HTTP " + code + ").";
+    }
+
     private void processarLoginComSucesso(LoginResponse data, Callback<LoginResponse> callback) {
         String perfil = data.getPerfil();
-        if (perfil != null && !SessionManager.PERFIL_TUTOR.equalsIgnoreCase(perfil.trim())) {
-            callback.onError(PREFIXO_ERRO_PERFIL + " " + perfil + ". O aplicativo móvel é exclusivo para Tutores. "
-                    + "Para acessar o painel clínico ou administrativo, utilize o portal web.");
+        boolean ehTutor = perfil != null && SessionManager.PERFIL_TUTOR.equalsIgnoreCase(perfil.trim());
+        if (!ehTutor || data.getToken() == null || data.getToken().trim().isEmpty()) {
+            // Não salva token
+            callback.onError(PREFIXO_ERRO_PERFIL + ". Use o portal web.");
             return;
         }
-        session.salvarSessao(data.getToken(), data.getUsuarioId(), data.getNome(), data.getLogin());
+        session.salvarSessao(data.getToken(), data.getUsuarioId(), data.getNome(), data.getLogin(), perfil);
         callback.onSuccess(data);
     }
-
-    private void autenticarOffline(String login, String senha, Callback<LoginResponse> callback) {
-        // Credencial de teste para homologação offline do Tutor
-        if (login.equalsIgnoreCase("tutor_teste") && (senha.equals("Tutor123!") || senha.equals("123456"))) {
-            LoginResponse mock = new LoginResponse("mock_token_tutor_offline", 1, "Maria Oliveira", "tutor_teste", SessionManager.PERFIL_TUTOR);
-            processarLoginComSucesso(mock, callback);
-        } else {
-            callback.onError("Usuário ou senha inválidos.");
-        }
-    }
-
     public void cadastrarTutor(String nome, String login, String email, String senha, Callback<Boolean> callback) {
         cadastrarTutor(nome, login, email, senha, null, callback);
     }
@@ -460,25 +466,6 @@ public class PetCareRepository {
         return Consulta.STATUS_CANCELADA;
     }
 
-    public void atualizarStatusConsulta(int id, String novoStatus, Callback<Boolean> callback) {
-        List<Consulta> lista = obterConsultasLocais();
-        for (Consulta c : lista) {
-            if (c.getId() == id) {
-                c.setStatus(novoStatus);
-                salvarLista("consultas", lista);
-
-                ApiService api = ApiClient.getService(context);
-                api.atualizarStatusConsulta(id, novoStatus, "").enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
-                    @Override public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {}
-                    @Override public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {}
-                });
-
-                callback.onSuccess(true);
-                return;
-            }
-        }
-        callback.onError("Consulta não encontrada.");
-    }
 
     // =========================================================================
     // VACINAS, HISTÓRICO, RELATÓRIOS E AVISOS DO TUTOR
