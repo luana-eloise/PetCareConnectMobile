@@ -11,6 +11,7 @@ import com.unip.petcareconnect.model.ApiResponse;
 import com.unip.petcareconnect.model.Aviso;
 import com.unip.petcareconnect.model.CadastroRequest;
 import com.unip.petcareconnect.model.Consulta;
+import com.unip.petcareconnect.model.ConsultaRequest;
 import com.unip.petcareconnect.model.Historico;
 import com.unip.petcareconnect.model.LoginRequest;
 import com.unip.petcareconnect.model.LoginResponse;
@@ -18,26 +19,22 @@ import com.unip.petcareconnect.model.Pet;
 import com.unip.petcareconnect.model.PetRequest;
 import com.unip.petcareconnect.model.Relatorio;
 import com.unip.petcareconnect.model.Vacina;
+import com.unip.petcareconnect.model.Veterinario;
 import com.unip.petcareconnect.util.SessionManager;
 
 import java.lang.reflect.Type;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import retrofit2.Call;
 import retrofit2.Response;
 
 /**
  * Repositório central de dados do PetCare Connect Mobile (perfil Tutor).
- * Login e Pets: API-first. Demais áreas ainda usam cache local (passos 3 a 5).
+ * Login, Pets, Veterinários e Consultas: API-first.
+ * Vacinas, histórico, relatórios e avisos ainda usam cache local (passo 4).
  */
 @SuppressWarnings("unused")
 public class PetCareRepository {
@@ -68,15 +65,11 @@ public class PetCareRepository {
     }
 
     // =========================================================================
-    // SEED LOCAL (TEMPORÁRIO: sai nos passos 3 e 4). Pets não têm mais seed.
+    // SEED LOCAL (TEMPORÁRIO: sai no passo 4). Pets e consultas não têm mais seed.
     // =========================================================================
 
     private void inicializarBaseLocalSeVazia() {
         if (!dataPref.getBoolean("initialized", false)) {
-            List<Consulta> consultas = new ArrayList<>();
-            consultas.add(new Consulta(1, 1, "Rex", 2, "Dr. Carlos Mendes", "15/10/2026", "14:00", Consulta.STATUS_MARCADA, "Consulta de rotina anual"));
-            consultas.add(new Consulta(2, 2, "Mia", 2, "Dr. Carlos Mendes", "01/09/2026", "10:30", Consulta.STATUS_REALIZADA, "Exame clínico concluído com sucesso"));
-
             List<Vacina> vacinas = new ArrayList<>();
             vacinas.add(new Vacina(1, 1, "Antirrábica", "10/05/2026", "Dose anual", true));
             vacinas.add(new Vacina(2, 1, "V10 Canina", "10/06/2026", "Reforço anual", true));
@@ -101,7 +94,6 @@ public class PetCareRepository {
             avisos.add(new Aviso(2, "Consulta Confirmada", "Consulta de Rex confirmada para 15/10/2026 às 14:00 com Dr. Carlos Mendes.", Aviso.TIPO_CONSULTA, 1, 1, false));
             avisos.add(new Aviso(3, "Vacina Pendente", "A vacina de Giárdia do Rex está pendente para agendamento.", Aviso.TIPO_PET, 1, 1, false));
 
-            salvarLista("consultas", consultas);
             salvarLista("vacinas", vacinas);
             salvarLista("historico", historicos);
             salvarLista("relatorios", relatorios);
@@ -201,21 +193,21 @@ public class PetCareRepository {
     // CADASTRO (ainda com fallback falso: sai no passo 5)
     // =========================================================================
 
-    public void cadastrarTutor(String nome, String login, String email, String senha, Callback<Boolean> callback) {
-        cadastrarTutor(nome, login, email, senha, null, callback);
-    }
-
     public void cadastrarTutor(String nome, String login, String email, String senha, String telefone, Callback<Boolean> callback) {
         ApiService api = ApiClient.getService(context);
         api.cadastrar(new CadastroRequest(nome, login, email, senha, telefone)).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
             @Override
             public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {
-                callback.onSuccess(true); // TODO passo 5
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    callback.onSuccess(true);
+                } else {
+                    callback.onError(mensagemDeErro(response));
+                }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<Integer>> call, Throwable t) {
-                callback.onSuccess(true); // TODO passo 5
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
             }
         });
     }
@@ -235,7 +227,7 @@ public class PetCareRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
                     List<Pet> pets = response.body().getDados() != null
                             ? response.body().getDados() : new ArrayList<Pet>();
-                    // Cópia só de leitura, usada por consultas/vacinas até os próximos passos
+                    // Cópia só de leitura, usada por vacinas até o passo 4
                     salvarLista("pets", pets);
                     callback.onSuccess(pets);
                     return;
@@ -312,26 +304,45 @@ public class PetCareRepository {
     }
 
     // =========================================================================
-    // CONSULTAS (ainda local/híbrido: passo 3)
+    // VETERINÁRIOS E CONSULTAS (API-first)
     // =========================================================================
 
+    public void listarVeterinarios(Callback<List<Veterinario>> callback) {
+        ApiClient.getService(context).listarVeterinarios().enqueue(new retrofit2.Callback<ApiResponse<List<Veterinario>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<Veterinario>>> call, Response<ApiResponse<List<Veterinario>>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    callback.onSuccess(response.body().getDados() != null
+                            ? response.body().getDados() : new ArrayList<Veterinario>());
+                } else {
+                    callback.onError(mensagemDeErro(response));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<Veterinario>>> call, Throwable t) {
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
+            }
+        });
+    }
+
     public void listarConsultas(Callback<List<Consulta>> callback) {
-        ApiService api = ApiClient.getService(context);
-        api.listarConsultas().enqueue(new retrofit2.Callback<ApiResponse<List<Consulta>>>() {
+        ApiClient.getService(context).listarConsultas().enqueue(new retrofit2.Callback<ApiResponse<List<Consulta>>>() {
             @Override
             public void onResponse(Call<ApiResponse<List<Consulta>>> call, Response<ApiResponse<List<Consulta>>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().getDados() != null) {
-                    List<Consulta> lista = response.body().getDados();
-                    salvarLista("consultas", lista);
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    List<Consulta> lista = response.body().getDados() != null
+                            ? response.body().getDados() : new ArrayList<Consulta>();
+                    salvarLista("consultas", lista); // cópia só de leitura (usada por telas antigas)
                     callback.onSuccess(lista);
-                    return;
+                } else {
+                    callback.onError(mensagemDeErro(response));
                 }
-                callback.onSuccess(obterConsultasLocais());
             }
 
             @Override
             public void onFailure(Call<ApiResponse<List<Consulta>>> call, Throwable t) {
-                callback.onSuccess(obterConsultasLocais());
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
             }
         });
     }
@@ -341,103 +352,70 @@ public class PetCareRepository {
         return obterLista("consultas", type);
     }
 
+    /** A API já devolve só as consultas do Tutor logado. */
     public void listarConsultasDoPerfil(Callback<List<Consulta>> callback) {
-        listarConsultas(new Callback<List<Consulta>>() {
+        listarConsultas(callback);
+    }
+
+    public void listarHorariosDisponiveis(int veterinarioId, String data, Callback<List<String>> callback) {
+        ApiClient.getService(context).horariosDisponiveis(veterinarioId, data).enqueue(new retrofit2.Callback<ApiResponse<List<String>>>() {
             @Override
-            public void onSuccess(List<Consulta> todas) {
-                int tutorId = session.getUserId();
-                Set<Integer> idsDosMeusPets = new HashSet<>();
-
-                for (Pet p : obterPetsLocais()) {
-                    if (p.getTutorId() == tutorId || tutorId == 0) {
-                        idsDosMeusPets.add(p.getId());
-                    }
+            public void onResponse(Call<ApiResponse<List<String>>> call, Response<ApiResponse<List<String>>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    callback.onSuccess(response.body().getDados() != null
+                            ? response.body().getDados() : new ArrayList<String>());
+                } else {
+                    callback.onError(mensagemDeErro(response));
                 }
-
-                List<Consulta> filtradas = new ArrayList<>();
-                for (Consulta c : todas) {
-                    if (idsDosMeusPets.contains(c.getPetId()) || c.getTutorId() == tutorId) {
-                        filtradas.add(c);
-                    }
-                }
-                callback.onSuccess(filtradas);
             }
 
             @Override
-            public void onError(String message) {
-                callback.onError(message);
+            public void onFailure(Call<ApiResponse<List<String>>> call, Throwable t) {
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
             }
         });
     }
 
-    public void agendarConsulta(Consulta consulta, Callback<Consulta> callback) {
-        List<Consulta> lista = obterConsultasLocais();
-
-        for (Consulta c : lista) {
-            if (c.getData().equalsIgnoreCase(consulta.getData()) &&
-                    c.getHora().equalsIgnoreCase(consulta.getHora()) &&
-                    !c.isCancelada()) {
-                callback.onError("Horário já reservado para este veterinário (Regra RN-002).");
-                return;
-            }
-        }
-
-        int novoId = lista.isEmpty() ? 1 : lista.get(lista.size() - 1).getId() + 1;
-        consulta.setId(novoId);
-        consulta.setStatus(Consulta.STATUS_MARCADA);
-        consulta.setTutorId(session.getUserId());
-        lista.add(0, consulta);
-        salvarLista("consultas", lista);
-
-        ApiService api = ApiClient.getService(context);
-        api.criarConsulta(consulta).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
-            @Override public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {}
-            @Override public void onFailure(Call<ApiResponse<Integer>> call, Throwable t) {}
-        });
-
-        callback.onSuccess(consulta);
-    }
-
-    public void cancelarConsulta(int id, Callback<Boolean> callback) {
-        List<Consulta> lista = obterConsultasLocais();
-        for (Consulta c : lista) {
-            if (c.getId() == id) {
-                String novoStatus = calcularStatusCancelamento(c.getData(), c.getHora());
-                c.setStatus(novoStatus);
-                salvarLista("consultas", lista);
-
-                ApiService api = ApiClient.getService(context);
-                api.cancelarConsulta(id).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
-                    @Override public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {}
-                    @Override public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {}
-                });
-
-                callback.onSuccess(true);
-                return;
-            }
-        }
-        callback.onError("Consulta não encontrada.");
-    }
-
-    private String calcularStatusCancelamento(String dataStr, String horaStr) {
-        if (dataStr == null || dataStr.trim().isEmpty()) {
-            return Consulta.STATUS_CANCELADA;
-        }
-        try {
-            String horaFormatada = (horaStr != null && !horaStr.trim().isEmpty()) ? horaStr.trim() : "00:00";
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
-            sdf.setLenient(false);
-            Date dataConsulta = sdf.parse(dataStr.trim() + " " + horaFormatada);
-
-            if (dataConsulta != null) {
-                long diffMs = dataConsulta.getTime() - System.currentTimeMillis();
-                if (diffMs < 24L * 60L * 60L * 1000L) {
-                    return Consulta.STATUS_NAO_COMPARECEU;
+    /** RN-002 e demais regras vêm do servidor. Devolve a mensagem do envelope. */
+    public void agendarConsulta(int petId, int veterinarioId, String data, String hora,
+                                String observacoes, Callback<String> callback) {
+        ConsultaRequest req = new ConsultaRequest(petId, veterinarioId, data, hora, observacoes);
+        ApiClient.getService(context).criarConsulta(req).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    String msg = response.body().getMensagem();
+                    callback.onSuccess(msg.isEmpty() ? "Consulta agendada com sucesso." : msg);
+                } else {
+                    callback.onError(mensagemDeErro(response));
                 }
             }
-        } catch (ParseException ignored) {
-        }
-        return Consulta.STATUS_CANCELADA;
+
+            @Override
+            public void onFailure(Call<ApiResponse<Integer>> call, Throwable t) {
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
+            }
+        });
+    }
+
+    /** RN-005 é aplicada pelo servidor. Devolve a mensagem do envelope. */
+    public void cancelarConsulta(int id, Callback<String> callback) {
+        ApiClient.getService(context).cancelarConsulta(id).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    String msg = response.body().getMensagem();
+                    callback.onSuccess(msg.isEmpty() ? "Consulta cancelada." : msg);
+                } else {
+                    callback.onError(mensagemDeErro(response));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
+            }
+        });
     }
 
     // =========================================================================
