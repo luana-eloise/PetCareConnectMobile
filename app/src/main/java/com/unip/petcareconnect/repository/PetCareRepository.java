@@ -190,12 +190,12 @@ public class PetCareRepository {
     }
 
     // =========================================================================
-    // CADASTRO (ainda com fallback falso: sai no passo 5)
+    // CADASTRO (API-first)
     // =========================================================================
 
-    public void cadastrarTutor(String nome, String login, String email, String senha, String telefone, Callback<Boolean> callback) {
-        ApiService api = ApiClient.getService(context);
-        api.cadastrar(new CadastroRequest(nome, login, email, senha, telefone)).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
+    /** Só dá sucesso se a API criar o Tutor. Erros 400 trazem a mensagem do servidor. */
+    public void cadastrarTutor(CadastroRequest req, Callback<Boolean> callback) {
+        ApiClient.getService(context).cadastrar(req).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
             @Override
             public void onResponse(Call<ApiResponse<Integer>> call, Response<ApiResponse<Integer>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
@@ -211,11 +211,6 @@ public class PetCareRepository {
             }
         });
     }
-
-    public void cadastrarTutor(CadastroRequest req, Callback<Boolean> callback) {
-        cadastrarTutor(req.getNome(), req.getLogin(), req.getEmail(), req.getSenha(), req.getTelefone(), callback);
-    }
-
     // =========================================================================
     // PETS (API-first)
     // =========================================================================

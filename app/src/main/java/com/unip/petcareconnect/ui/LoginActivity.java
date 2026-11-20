@@ -9,6 +9,8 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -33,9 +35,24 @@ public class LoginActivity extends AppCompatActivity {
     private PetCareRepository repository;
     private SessionManager sessionManager;
 
+
+    private final ActivityResultLauncher<Intent> cadastroLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    String email = result.getData().getStringExtra(CadastroActivity.EXTRA_EMAIL);
+                    if (email != null && etLogin != null) {
+                        etLogin.setText(email);
+                        etSenha.requestFocus();
+                    }
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        btnIrCadastro.setOnClickListener(v -> cadastroLauncher.launch(new Intent(this,
+                CadastroActivity.class)));
 
         sessionManager = new SessionManager(this);
         if (sessionManager.isLoggedIn()) {
