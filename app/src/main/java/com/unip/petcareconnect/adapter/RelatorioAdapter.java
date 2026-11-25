@@ -45,10 +45,10 @@ public class RelatorioAdapter extends RecyclerView.Adapter<RelatorioAdapter.View
         if (r == null) return;
 
         String petNome = r.getPetNome() != null ? r.getPetNome() : "Pet";
-        holder.tvTitulo.setText(r.getTitulo() != null ? r.getTitulo() : "Relatório Clínico — " + petNome);
-        holder.tvTexto.setText(r.getTexto() != null ? r.getTexto() : "");
-        holder.tvAtualizacao.setText("Data: " + (r.getDataEmissao() != null ? r.getDataEmissao() : "Recente"));
-        holder.tvStatus.setText(r.getStatus() != null ? r.getStatus() : Relatorio.STATUS_DISPONIVEL);
+        holder.tvTitulo.setText(r.getTitulo());
+        holder.tvTexto.setText(r.getTexto());
+        holder.tvAtualizacao.setText("Atualizado em: " + (r.getAtualizacao().isEmpty() ? "—" : r.getAtualizacao()));
+        holder.tvStatus.setText(r.getStatusFormatado());
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onRelatorioClick(r);

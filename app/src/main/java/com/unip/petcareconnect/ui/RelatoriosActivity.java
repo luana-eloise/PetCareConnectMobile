@@ -47,7 +47,7 @@ public class RelatoriosActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         rvRelatorios = findViewById(R.id.rvRelatorios);
         swipeRefresh = findViewById(R.id.swipeRefresh);
-        progressBar  = findViewById(R.id.progressBar);
+        progressBar = findViewById(R.id.progressBar);
         tvEmptyState = findViewById(R.id.tvEmptyState);
 
         setSupportActionBar(toolbar);
@@ -60,10 +60,14 @@ public class RelatoriosActivity extends AppCompatActivity {
         rvRelatorios.setLayoutManager(new LinearLayoutManager(this));
         adapter = new RelatorioAdapter(relatorioList, new RelatorioAdapter.OnRelatorioActionListener() {
             @Override
-            public void onRelatorioClick(Relatorio relatorio) { mostrarDetalhes(relatorio); }
+            public void onRelatorioClick(Relatorio relatorio) {
+                mostrarDetalhes(relatorio);
+            }
 
             @Override
-            public void onExportarClick(Relatorio relatorio) { exportarRelatorio(relatorio); }
+            public void onExportarClick(Relatorio relatorio) {
+                exportarRelatorio(relatorio);
+            }
         });
         rvRelatorios.setAdapter(adapter);
 
@@ -98,14 +102,11 @@ public class RelatoriosActivity extends AppCompatActivity {
     }
 
     private void mostrarDetalhes(Relatorio relatorio) {
-        String msg = "Tipo: " + relatorio.getTipo() + "\n" +
-                "Pet: " + relatorio.getPetNome() + "\n" +
-                "Data: " + relatorio.getDataEmissao() + "\n" +
-                "Veterinário Responsável: " + (relatorio.getVeterinarioNome() != null
-                        ? relatorio.getVeterinarioNome() : "Clínica PetCare") + "\n\n" +
-                "DIAGNÓSTICO:\n" + relatorio.getDiagnostico() + "\n\n" +
-                "CONDUTA / PRESCRIÇÃO:\n" + (relatorio.getConduta() != null
-                        ? relatorio.getConduta() : "Nenhuma recomendação especial.");
+        String msg = "Pet: " + relatorio.getPetNome() + "\n" +
+                "Tutor: " + relatorio.getTutorNome() + "\n" +
+                "Status: " + relatorio.getStatusFormatado() + "\n" +
+                "Atualizado em: " + relatorio.getAtualizacao() + "\n\n" +
+                relatorio.getTexto();
 
         new AlertDialog.Builder(this)
                 .setTitle(relatorio.getTitulo())
@@ -116,16 +117,13 @@ public class RelatoriosActivity extends AppCompatActivity {
     }
 
     private void exportarRelatorio(Relatorio relatorio) {
-        String conteudo = "=== PETCARE CONNECT - LAUDO CLÍNICO SIMPLIFICADO ===\n" +
-                "Título: " + relatorio.getTitulo() + "\n" +
-                "Tipo: " + relatorio.getTipo() + "\n" +
+        String conteudo = "=== PETCARE CONNECT - RELATÓRIO CLÍNICO ===\n" +
                 "Pet: " + relatorio.getPetNome() + "\n" +
-                "Data de Emissão: " + relatorio.getDataEmissao() + "\n" +
-                "Veterinário: " + relatorio.getVeterinarioNome() + "\n" +
+                "Tutor: " + relatorio.getTutorNome() + "\n" +
+                "Status: " + relatorio.getStatusFormatado() + "\n" +
+                "Atualizado em: " + relatorio.getAtualizacao() + "\n" +
                 "----------------------------------------\n" +
-                "DIAGNÓSTICO:\n" + relatorio.getDiagnostico() + "\n\n" +
-                "CONDUTA / TRATAMENTO:\n" + (relatorio.getConduta() != null
-                        ? relatorio.getConduta() : "Em acompanhamento") + "\n" +
+                relatorio.getTexto() + "\n" +
                 "========================================";
 
         Intent sendIntent = new Intent();

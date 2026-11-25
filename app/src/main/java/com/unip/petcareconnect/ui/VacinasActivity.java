@@ -50,10 +50,10 @@ public class VacinasActivity extends AppCompatActivity {
         repository = new PetCareRepository(this);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
-        spinnerPets  = findViewById(R.id.spinnerPets);
-        rvVacinas    = findViewById(R.id.rvVacinas);
+        spinnerPets = findViewById(R.id.spinnerPets);
+        rvVacinas = findViewById(R.id.rvVacinas);
         swipeRefresh = findViewById(R.id.swipeRefresh);
-        progressBar  = findViewById(R.id.progressBar);
+        progressBar = findViewById(R.id.progressBar);
         tvEmptyState = findViewById(R.id.tvEmptyState);
 
         setSupportActionBar(toolbar);
@@ -99,7 +99,8 @@ public class VacinasActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onNothingSelected(AdapterView<?> parent) {}
+                    public void onNothingSelected(AdapterView<?> parent) {
+                    }
                 });
 
                 carregarTodasVacinas();
@@ -118,7 +119,9 @@ public class VacinasActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         repository.listarTodasVacinas(new PetCareRepository.RepositoryCallback<List<Vacina>>() {
             @Override
-            public void onSuccess(List<Vacina> vacinas) { atualizarLista(vacinas); }
+            public void onSuccess(List<Vacina> vacinas) {
+                atualizarLista(vacinas);
+            }
 
             @Override
             public void onError(String mensagem) {
@@ -133,7 +136,9 @@ public class VacinasActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         repository.listarVacinasDoPet(petId, new PetCareRepository.RepositoryCallback<List<Vacina>>() {
             @Override
-            public void onSuccess(List<Vacina> vacinas) { atualizarLista(vacinas); }
+            public void onSuccess(List<Vacina> vacinas) {
+                atualizarLista(vacinas);
+            }
 
             @Override
             public void onError(String mensagem) {
@@ -157,13 +162,15 @@ public class VacinasActivity extends AppCompatActivity {
     }
 
     private void mostrarDetalhesVacina(Vacina vacina) {
+        String data = (vacina.getDataAplicacao() != null && !vacina.getDataAplicacao().isEmpty())
+                ? vacina.getDataAplicacao() : "Não aplicada";
         String msg = "Vacina: " + vacina.getNome() + "\n" +
                 "Pet: " + vacina.getPetNome() + "\n" +
-                "Dose: " + vacina.getDose() + "\n" +
-                "Lote: " + (vacina.getLote() != null ? vacina.getLote() : "N/I") + "\n" +
-                "Data de Aplicação: " + vacina.getDataAplicacao() + "\n" +
-                "Próxima Dose: " + (vacina.getProximaDose() != null ? vacina.getProximaDose() : "Não requer") + "\n" +
-                "Veterinário: " + (vacina.getVeterinarioNome() != null ? vacina.getVeterinarioNome() : "Clínica PetCare");
+                "Status: " + vacina.getStatusDescricao() + "\n" +
+                "Data de aplicação: " + data;
+        if (vacina.getObservacao() != null && !vacina.getObservacao().trim().isEmpty()) {
+            msg += "\n\nObservação: " + vacina.getObservacao();
+        }
 
         new AlertDialog.Builder(this)
                 .setTitle("Registro de Vacinação")

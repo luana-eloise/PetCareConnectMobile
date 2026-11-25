@@ -52,12 +52,12 @@ public class AvisoAdapter extends RecyclerView.Adapter<AvisoAdapter.ViewHolder> 
             holder.tvStatus.setText("Lido");
             holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_green);
             holder.tvStatus.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.teal_dark));
-            holder.btnLido.setText("Marcar como não lido");
-            holder.btnLido.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.text_muted));
+            holder.btnLido.setVisibility(View.GONE);
         } else {
             holder.tvStatus.setText("Novo");
             holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_yellow);
             holder.tvStatus.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.status_yellow));
+            holder.btnLido.setVisibility(View.VISIBLE);
             holder.btnLido.setText("Marcar como lido");
             holder.btnLido.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.teal_primary));
         }

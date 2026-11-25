@@ -1,10 +1,8 @@
 package com.unip.petcareconnect.repository;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.unip.petcareconnect.api.ApiClient;
 import com.unip.petcareconnect.api.ApiService;
 import com.unip.petcareconnect.model.ApiResponse;
@@ -22,31 +20,27 @@ import com.unip.petcareconnect.model.Vacina;
 import com.unip.petcareconnect.model.Veterinario;
 import com.unip.petcareconnect.util.SessionManager;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Response;
 
 /**
- * Repositório central de dados do PetCare Connect Mobile (perfil Tutor).
- * Login, Pets, Veterinários e Consultas: API-first.
- * Vacinas, histórico, relatórios e avisos ainda usam cache local (passo 4).
+ * Repositório do PetCare Connect Mobile (perfil Tutor).
+ * Todas as áreas são API-first: a API é a única fonte de dados e as regras de negócio
+ * (RN-002, RN-005 etc.) são do servidor. Não há seed nem cache local.
  */
-@SuppressWarnings("unused")
 public class PetCareRepository {
 
-    private static final String PREF_DATA = "petcare_mobile_local_db";
     public static final String PREFIXO_ERRO_PERFIL = "Esta conta não é de Tutor";
     private static final String MSG_SERVIDOR_ACORDANDO =
             "Servidor acordando, tente novamente em instantes.";
+    // Banco local das versões antigas do app: é apagado para não sobrar dado de exemplo
+    private static final String PREF_LEGADO = "petcare_mobile_local_db";
 
     private final Context context;
     private final SessionManager session;
-    private final SharedPreferences dataPref;
     private final Gson gson;
 
     public interface Callback<T> {
@@ -59,65 +53,12 @@ public class PetCareRepository {
     public PetCareRepository(Context context) {
         this.context = context.getApplicationContext();
         this.session = new SessionManager(context);
-        this.dataPref = this.context.getSharedPreferences(PREF_DATA, Context.MODE_PRIVATE);
         this.gson = new Gson();
-        inicializarBaseLocalSeVazia();
+        this.context.getSharedPreferences(PREF_LEGADO, Context.MODE_PRIVATE).edit().clear().apply();
     }
 
     // =========================================================================
-    // SEED LOCAL (TEMPORÁRIO: sai no passo 4). Pets e consultas não têm mais seed.
-    // =========================================================================
-
-    private void inicializarBaseLocalSeVazia() {
-        if (!dataPref.getBoolean("initialized", false)) {
-            List<Vacina> vacinas = new ArrayList<>();
-            vacinas.add(new Vacina(1, 1, "Antirrábica", "10/05/2026", "Dose anual", true));
-            vacinas.add(new Vacina(2, 1, "V10 Canina", "10/06/2026", "Reforço anual", true));
-            vacinas.add(new Vacina(3, 1, "Giárdia Canina", null, "Reforço pendente", false));
-            vacinas.add(new Vacina(4, 2, "V4 Felina", "12/04/2026", "Primeira dose", true));
-
-            List<Historico> historicos = new ArrayList<>();
-            historicos.add(new Historico(1, 1, "Consulta de rotina com pesagem e vermifugação.", "10/06/2026"));
-            historicos.add(new Historico(2, 1, "Aplicação da vacina antirrábica preventiva.", "10/05/2026"));
-            historicos.add(new Historico(3, 2, "Exame dermatológico e odontológico sem alterações.", "01/09/2026"));
-
-            List<Relatorio> relatorios = new ArrayList<>();
-            relatorios.add(new Relatorio(1, 1, "Rex", "Maria Oliveira", "Dr. Carlos Mendes",
-                    "PARECER CLÍNICO:\nPaciente canino, Labrador Retriever, 3 anos, 25.5 kg.\nExame físico dentro dos parâmetros de normalidade. Carteira de vacinação em dia. Recomendada manutenção de ração super premium.",
-                    Relatorio.STATUS_DISPONIVEL, "10/06/2026 15:30"));
-            relatorios.add(new Relatorio(2, 2, "Mia", "Maria Oliveira", "Dr. Carlos Mendes",
-                    "PARECER CLÍNICO:\nPaciente felino, Siamês, 2 anos, 4.2 kg.\nAusculta cardiopulmonar límpida. Hidratação e reflexos preservados.",
-                    Relatorio.STATUS_DISPONIVEL, "01/09/2026 11:15"));
-
-            List<Aviso> avisos = new ArrayList<>();
-            avisos.add(new Aviso(1, "Bem-vindo ao PetCare Connect", "O sistema está ativo no seu celular! Cadastre seus pets e acompanhe consultas.", Aviso.TIPO_GERAL, null, null, false));
-            avisos.add(new Aviso(2, "Consulta Confirmada", "Consulta de Rex confirmada para 15/10/2026 às 14:00 com Dr. Carlos Mendes.", Aviso.TIPO_CONSULTA, 1, 1, false));
-            avisos.add(new Aviso(3, "Vacina Pendente", "A vacina de Giárdia do Rex está pendente para agendamento.", Aviso.TIPO_PET, 1, 1, false));
-
-            salvarLista("vacinas", vacinas);
-            salvarLista("historico", historicos);
-            salvarLista("relatorios", relatorios);
-            salvarLista("avisos", avisos);
-
-            dataPref.edit().putBoolean("initialized", true).apply();
-        }
-    }
-
-    private <T> void salvarLista(String chave, List<T> lista) {
-        dataPref.edit().putString(chave, gson.toJson(lista)).apply();
-    }
-
-    private <T> List<T> obterLista(String chave, Type tipo) {
-        String json = dataPref.getString(chave, null);
-        if (json == null || json.trim().isEmpty()) {
-            return new ArrayList<>();
-        }
-        List<T> resultado = gson.fromJson(json, tipo);
-        return resultado != null ? resultado : new ArrayList<>();
-    }
-
-    // =========================================================================
-    // ERROS
+    // APOIO
     // =========================================================================
 
     /**
@@ -148,8 +89,28 @@ public class PetCareRepository {
         return "Não foi possível concluir a operação (HTTP " + code + ").";
     }
 
+    /** Callback padrão de leitura: sucesso só com "sucesso: true", senão devolve a mensagem do servidor. */
+    private <T> retrofit2.Callback<ApiResponse<T>> aoReceber(final Callback<T> callback, final T vazio) {
+        return new retrofit2.Callback<ApiResponse<T>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<T>> call, Response<ApiResponse<T>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    T dados = response.body().getDados();
+                    callback.onSuccess(dados != null ? dados : vazio);
+                } else {
+                    callback.onError(mensagemDeErro(response));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<T>> call, Throwable t) {
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
+            }
+        };
+    }
+
     // =========================================================================
-    // AUTENTICAÇÃO
+    // AUTENTICAÇÃO E CADASTRO
     // =========================================================================
 
     public void login(String login, String senha, Callback<LoginResponse> callback) {
@@ -189,10 +150,6 @@ public class PetCareRepository {
         callback.onSuccess(data);
     }
 
-    // =========================================================================
-    // CADASTRO (API-first)
-    // =========================================================================
-
     /** Só dá sucesso se a API criar o Tutor. Erros 400 trazem a mensagem do servidor. */
     public void cadastrarTutor(CadastroRequest req, Callback<Boolean> callback) {
         ApiClient.getService(context).cadastrar(req).enqueue(new retrofit2.Callback<ApiResponse<Integer>>() {
@@ -211,35 +168,13 @@ public class PetCareRepository {
             }
         });
     }
+
     // =========================================================================
-    // PETS (API-first)
+    // PETS
     // =========================================================================
 
     public void listarPets(Callback<List<Pet>> callback) {
-        ApiClient.getService(context).listarPets().enqueue(new retrofit2.Callback<ApiResponse<List<Pet>>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<List<Pet>>> call, Response<ApiResponse<List<Pet>>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
-                    List<Pet> pets = response.body().getDados() != null
-                            ? response.body().getDados() : new ArrayList<Pet>();
-                    // Cópia só de leitura, usada por vacinas até o passo 4
-                    salvarLista("pets", pets);
-                    callback.onSuccess(pets);
-                    return;
-                }
-                callback.onError(mensagemDeErro(response));
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<List<Pet>>> call, Throwable t) {
-                callback.onError(MSG_SERVIDOR_ACORDANDO);
-            }
-        });
-    }
-
-    public List<Pet> obterPetsLocais() {
-        Type type = new TypeToken<List<Pet>>(){}.getType();
-        return obterLista("pets", type);
+        ApiClient.getService(context).listarPets().enqueue(aoReceber(callback, new ArrayList<Pet>()));
     }
 
     /** Só dá sucesso se a API criar. A tela recarrega a lista pelo GET depois. */
@@ -299,52 +234,15 @@ public class PetCareRepository {
     }
 
     // =========================================================================
-    // VETERINÁRIOS E CONSULTAS (API-first)
+    // VETERINÁRIOS E CONSULTAS
     // =========================================================================
 
     public void listarVeterinarios(Callback<List<Veterinario>> callback) {
-        ApiClient.getService(context).listarVeterinarios().enqueue(new retrofit2.Callback<ApiResponse<List<Veterinario>>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<List<Veterinario>>> call, Response<ApiResponse<List<Veterinario>>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
-                    callback.onSuccess(response.body().getDados() != null
-                            ? response.body().getDados() : new ArrayList<Veterinario>());
-                } else {
-                    callback.onError(mensagemDeErro(response));
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<List<Veterinario>>> call, Throwable t) {
-                callback.onError(MSG_SERVIDOR_ACORDANDO);
-            }
-        });
+        ApiClient.getService(context).listarVeterinarios().enqueue(aoReceber(callback, new ArrayList<Veterinario>()));
     }
 
     public void listarConsultas(Callback<List<Consulta>> callback) {
-        ApiClient.getService(context).listarConsultas().enqueue(new retrofit2.Callback<ApiResponse<List<Consulta>>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<List<Consulta>>> call, Response<ApiResponse<List<Consulta>>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
-                    List<Consulta> lista = response.body().getDados() != null
-                            ? response.body().getDados() : new ArrayList<Consulta>();
-                    salvarLista("consultas", lista); // cópia só de leitura (usada por telas antigas)
-                    callback.onSuccess(lista);
-                } else {
-                    callback.onError(mensagemDeErro(response));
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<List<Consulta>>> call, Throwable t) {
-                callback.onError(MSG_SERVIDOR_ACORDANDO);
-            }
-        });
-    }
-
-    public List<Consulta> obterConsultasLocais() {
-        Type type = new TypeToken<List<Consulta>>(){}.getType();
-        return obterLista("consultas", type);
+        ApiClient.getService(context).listarConsultas().enqueue(aoReceber(callback, new ArrayList<Consulta>()));
     }
 
     /** A API já devolve só as consultas do Tutor logado. */
@@ -353,22 +251,8 @@ public class PetCareRepository {
     }
 
     public void listarHorariosDisponiveis(int veterinarioId, String data, Callback<List<String>> callback) {
-        ApiClient.getService(context).horariosDisponiveis(veterinarioId, data).enqueue(new retrofit2.Callback<ApiResponse<List<String>>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<List<String>>> call, Response<ApiResponse<List<String>>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
-                    callback.onSuccess(response.body().getDados() != null
-                            ? response.body().getDados() : new ArrayList<String>());
-                } else {
-                    callback.onError(mensagemDeErro(response));
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<List<String>>> call, Throwable t) {
-                callback.onError(MSG_SERVIDOR_ACORDANDO);
-            }
-        });
+        ApiClient.getService(context).horariosDisponiveis(veterinarioId, data)
+                .enqueue(aoReceber(callback, new ArrayList<String>()));
     }
 
     /** RN-002 e demais regras vêm do servidor. Devolve a mensagem do envelope. */
@@ -414,118 +298,84 @@ public class PetCareRepository {
     }
 
     // =========================================================================
-    // VACINAS, HISTÓRICO, RELATÓRIOS E AVISOS (ainda locais: passo 4)
+    // VACINAS, HISTÓRICO, RELATÓRIOS E AVISOS
     // =========================================================================
 
-    public void listarTodasVacinas(Callback<List<Vacina>> callback) {
-        Type typeVacina = new TypeToken<List<Vacina>>(){}.getType();
-        Type typePet = new TypeToken<List<Pet>>(){}.getType();
-        List<Vacina> vacinas = obterLista("vacinas", typeVacina);
-        List<Pet> pets = obterLista("pets", typePet);
-        preencherPetNome(vacinas, pets);
-        callback.onSuccess(vacinas);
-    }
-
     public void listarVacinasDoPet(int petId, Callback<List<Vacina>> callback) {
-        Type typeVacina = new TypeToken<List<Vacina>>(){}.getType();
-        Type typePet = new TypeToken<List<Pet>>(){}.getType();
-        List<Vacina> todas = obterLista("vacinas", typeVacina);
-        List<Pet> pets = obterLista("pets", typePet);
-        List<Vacina> doPet = new ArrayList<>();
-        for (Vacina v : todas) {
-            if (v.getPetId() == petId) {
-                doPet.add(v);
-            }
-        }
-        preencherPetNome(doPet, pets);
-        callback.onSuccess(doPet);
-    }
-
-    private void preencherPetNome(List<Vacina> vacinas, List<Pet> pets) {
-        if (vacinas == null || pets == null) return;
-        Map<Integer, String> nomePorId = new HashMap<>();
-        for (Pet p : pets) {
-            nomePorId.put(p.getId(), p.getNome());
-        }
-        for (Vacina v : vacinas) {
-            if (v.getPetNome() == null || v.getPetNome().isEmpty()) {
-                String nome = nomePorId.get(v.getPetId());
-                if (nome != null) v.setPetNome(nome);
-            }
-        }
+        ApiClient.getService(context).listarVacinas(petId).enqueue(aoReceber(callback, new ArrayList<Vacina>()));
     }
 
     public void listarVacinas(int petId, Callback<List<Vacina>> callback) {
         listarVacinasDoPet(petId, callback);
     }
 
-    public void listarHistorico(int petId, Callback<List<Historico>> callback) {
-        Type type = new TypeToken<List<Historico>>(){}.getType();
-        List<Historico> todos = obterLista("historico", type);
-        List<Historico> doPet = new ArrayList<>();
-        for (Historico h : todos) {
-            if (h.getPetId() == petId) {
-                doPet.add(h);
-            }
-        }
-        callback.onSuccess(doPet);
-    }
-
-    public void listarRelatorios(Callback<List<Relatorio>> callback) {
-        Type type = new TypeToken<List<Relatorio>>(){}.getType();
-        callback.onSuccess(obterLista("relatorios", type));
-    }
-
-    public void listarAvisos(Callback<List<Aviso>> callback) {
-        ApiService api = ApiClient.getService(context);
-        api.listarAvisos().enqueue(new retrofit2.Callback<ApiResponse<List<Aviso>>>() {
+    /** Não há endpoint para "todas": busca os pets e junta as vacinas de cada um. */
+    public void listarTodasVacinas(Callback<List<Vacina>> callback) {
+        listarPets(new Callback<List<Pet>>() {
             @Override
-            public void onResponse(Call<ApiResponse<List<Aviso>>> call, Response<ApiResponse<List<Aviso>>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().getDados() != null) {
-                    List<Aviso> remotos = response.body().getDados();
-                    salvarLista("avisos", remotos);
-                    callback.onSuccess(remotos);
+            public void onSuccess(List<Pet> pets) {
+                if (pets.isEmpty()) {
+                    callback.onSuccess(new ArrayList<Vacina>());
                     return;
                 }
-                Type type = new TypeToken<List<Aviso>>(){}.getType();
-                callback.onSuccess(obterLista("avisos", type));
+                final List<Vacina> todas = new ArrayList<>();
+                final int[] restantes = {pets.size()};
+                final boolean[] falhou = {false};
+                for (Pet pet : pets) {
+                    listarVacinasDoPet(pet.getId(), new Callback<List<Vacina>>() {
+                        @Override
+                        public void onSuccess(List<Vacina> vacinas) {
+                            if (falhou[0]) return;
+                            todas.addAll(vacinas);
+                            restantes[0]--;
+                            if (restantes[0] == 0) callback.onSuccess(todas);
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            if (falhou[0]) return;
+                            falhou[0] = true;
+                            callback.onError(message);
+                        }
+                    });
+                }
             }
 
             @Override
-            public void onFailure(Call<ApiResponse<List<Aviso>>> call, Throwable t) {
-                Type type = new TypeToken<List<Aviso>>(){}.getType();
-                callback.onSuccess(obterLista("avisos", type));
+            public void onError(String message) {
+                callback.onError(message);
             }
         });
     }
 
+    public void listarHistorico(int petId, Callback<List<Historico>> callback) {
+        ApiClient.getService(context).listarHistorico(petId).enqueue(aoReceber(callback, new ArrayList<Historico>()));
+    }
+
+    public void listarRelatorios(Callback<List<Relatorio>> callback) {
+        ApiClient.getService(context).listarRelatorios(null).enqueue(aoReceber(callback, new ArrayList<Relatorio>()));
+    }
+
+    public void listarAvisos(Callback<List<Aviso>> callback) {
+        ApiClient.getService(context).listarAvisos().enqueue(aoReceber(callback, new ArrayList<Aviso>()));
+    }
+
+    /** Só confirma se a API confirmar. A API não tem "marcar como não lido". */
     public void marcarAvisoLido(int avisoId, Callback<Boolean> callback) {
-        atualizarStatusAviso(avisoId, true, callback);
-    }
-
-    public void marcarAvisoNaoLido(int avisoId, Callback<Boolean> callback) {
-        atualizarStatusAviso(avisoId, false, callback);
-    }
-
-    public void atualizarStatusAviso(int avisoId, boolean lido, Callback<Boolean> callback) {
-        Type type = new TypeToken<List<Aviso>>(){}.getType();
-        List<Aviso> avisos = obterLista("avisos", type);
-        for (Aviso a : avisos) {
-            if (a.getId() == avisoId) {
-                a.setLido(lido);
-                break;
+        ApiClient.getService(context).marcarAvisoLido(avisoId).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSucesso()) {
+                    callback.onSuccess(true);
+                } else {
+                    callback.onError(mensagemDeErro(response));
+                }
             }
-        }
-        salvarLista("avisos", avisos);
 
-        if (lido) {
-            ApiService api = ApiClient.getService(context);
-            api.marcarAvisoLido(avisoId).enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
-                @Override public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {}
-                @Override public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {}
-            });
-        }
-
-        callback.onSuccess(true);
+            @Override
+            public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                callback.onError(MSG_SERVIDOR_ACORDANDO);
+            }
+        });
     }
 }

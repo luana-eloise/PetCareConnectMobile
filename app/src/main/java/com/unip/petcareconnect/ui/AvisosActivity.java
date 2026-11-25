@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Tela de Avisos e Lembretes do Tutor.
- * Exibe notificações da clínica e permite marcar como lido/não lido.
+ * Tela de Avisos do Tutor.
+ * Lista os avisos da API e permite marcar como lido (a API não tem "não lido").
  */
 public class AvisosActivity extends AppCompatActivity {
 
@@ -60,7 +60,7 @@ public class AvisosActivity extends AppCompatActivity {
         rvAvisos.setLayoutManager(new LinearLayoutManager(this));
         adapter = new AvisoAdapter(avisoList, new AvisoAdapter.OnAvisoActionListener() {
             @Override
-            public void onToggleLido(Aviso aviso) { alternarStatusLido(aviso); }
+            public void onToggleLido(Aviso aviso) { marcarComoLido(aviso, true); }
 
             @Override
             public void onAvisoClick(Aviso aviso) { mostrarDetalhesAviso(aviso); }
@@ -97,41 +97,33 @@ public class AvisosActivity extends AppCompatActivity {
         });
     }
 
-    private void alternarStatusLido(Aviso aviso) {
-        boolean novoStatus = !aviso.isLido();
-        aviso.setLido(novoStatus);
-        adapter.notifyDataSetChanged();
-
-        repository.atualizarStatusAviso(aviso.getId(), novoStatus, new PetCareRepository.Callback<Boolean>() {
+    /** Só atualiza a tela se a API confirmar. */
+    private void marcarComoLido(Aviso aviso, boolean avisar) {
+        if (aviso.isLido()) return;
+        repository.marcarAvisoLido(aviso.getId(), new PetCareRepository.Callback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {
-                String msg = novoStatus ? "Aviso marcado como lido." : "Aviso marcado como não lido.";
-                Toast.makeText(AvisosActivity.this, msg, Toast.LENGTH_SHORT).show();
+                aviso.setLido(true);
+                adapter.notifyDataSetChanged();
+                if (avisar) {
+                    Toast.makeText(AvisosActivity.this, "Aviso marcado como lido.", Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
-            public void onError(String message) { /* falha silenciosa — UI já foi atualizada */ }
+            public void onError(String message) {
+                Toast.makeText(AvisosActivity.this, message, Toast.LENGTH_LONG).show();
+            }
         });
     }
 
     private void mostrarDetalhesAviso(Aviso aviso) {
-        // Marca automaticamente como lido ao abrir detalhes
-        if (!aviso.isLido()) {
-            aviso.setLido(true);
-            adapter.notifyDataSetChanged();
-            repository.atualizarStatusAviso(aviso.getId(), true, new PetCareRepository.Callback<Boolean>() {
-                @Override public void onSuccess(Boolean result) {}
-                @Override public void onError(String message) {}
-            });
-        }
+        marcarComoLido(aviso, false); // abrir o aviso o marca como lido
 
         new AlertDialog.Builder(this)
                 .setTitle(aviso.getTitulo())
-                .setMessage("Prioridade: " + aviso.getPrioridade() + "\n" +
-                        "Data: " + aviso.getData() + "\n\n" +
-                        aviso.getMensagem())
+                .setMessage(aviso.getTexto())
                 .setPositiveButton("Fechar", null)
-                .setNeutralButton("Marcar como não lido", (dialog, which) -> alternarStatusLido(aviso))
                 .show();
     }
 }

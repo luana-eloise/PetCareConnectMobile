@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onError(String mensagem) { /* mantém valor prévio */ }
+            public void onError(String mensagem) { tvStatPets.setText("–"); }
         });
     }
 
@@ -113,16 +113,14 @@ public class MainActivity extends AppCompatActivity {
                 int totalMarcadas = 0;
                 if (consultas != null) {
                     for (Consulta c : consultas) {
-                        if (c != null && c.isMarcada()) {
-                            totalMarcadas++;
-                        }
+                        if (c != null && c.isMarcada()) totalMarcadas++;
                     }
                 }
                 tvStatConsultas.setText(String.valueOf(totalMarcadas));
             }
 
             @Override
-            public void onError(String mensagem) { /* mantém valor prévio */ }
+            public void onError(String mensagem) { tvStatConsultas.setText("–"); }
         });
     }
 
@@ -140,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onError(String mensagem) { /* mantém valor prévio */ }
+            public void onError(String mensagem) { tvStatVacinas.setText("–"); }
         });
     }
 
@@ -152,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onError(String mensagem) { /* mantém valor prévio */ }
+            public void onError(String mensagem) { tvStatRelatorios.setText("–"); }
         });
     }
 
