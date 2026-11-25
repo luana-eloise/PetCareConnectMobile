@@ -35,7 +35,7 @@ public class LoginActivity extends AppCompatActivity {
     private PetCareRepository repository;
     private SessionManager sessionManager;
 
-
+    // Recebe o e-mail cadastrado e preenche o campo de usuário
     private final ActivityResultLauncher<Intent> cadastroLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
@@ -51,9 +51,6 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        btnIrCadastro.setOnClickListener(v -> cadastroLauncher.launch(new Intent(this,
-                CadastroActivity.class)));
-
         sessionManager = new SessionManager(this);
         if (sessionManager.isLoggedIn()) {
             abrirMain();
@@ -64,6 +61,7 @@ public class LoginActivity extends AppCompatActivity {
 
         repository = new PetCareRepository(this);
 
+        // 1) primeiro localiza as views
         etLogin = findViewById(R.id.etLogin);
         etSenha = findViewById(R.id.etSenha);
         btnLogin = findViewById(R.id.btnLogin);
@@ -71,8 +69,10 @@ public class LoginActivity extends AppCompatActivity {
         tvEsqueciSenha = findViewById(R.id.tvEsqueciSenha);
         progressBar = findViewById(R.id.progressBar);
 
+        // 2) só depois configura os cliques
         btnLogin.setOnClickListener(v -> tentarLogin());
-        btnIrCadastro.setOnClickListener(v -> startActivity(new Intent(this, CadastroActivity.class)));
+        btnIrCadastro.setOnClickListener(v ->
+                cadastroLauncher.launch(new Intent(this, CadastroActivity.class)));
         tvEsqueciSenha.setOnClickListener(v -> mostrarDialogRecuperacaoSenha());
     }
 
