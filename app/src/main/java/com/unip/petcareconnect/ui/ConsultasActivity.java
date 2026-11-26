@@ -144,7 +144,7 @@ public class ConsultasActivity extends AppCompatActivity {
         String msg = "Pet: " + consulta.getPetNome() + "\n" +
                 "Veterinário: " + (consulta.getVeterinarioNome() != null ? consulta.getVeterinarioNome() : "A definir") + "\n" +
                 "Data: " + consulta.getData() + " às " + consulta.getHorario() + "\n" +
-                "Status: " + consulta.getStatus();
+                "Status: " + consulta.getStatusFormatado();
 
         if (consulta.getObservacoes() != null && !consulta.getObservacoes().isEmpty()) {
             msg += "\n\nObservações: " + consulta.getObservacoes();

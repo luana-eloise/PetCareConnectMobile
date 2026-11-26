@@ -56,7 +56,7 @@ public class ConsultaAdapter extends RecyclerView.Adapter<ConsultaAdapter.ViewHo
         holder.tvObs.setText(c.getObservacoes() != null && !c.getObservacoes().trim().isEmpty() 
                 ? c.getObservacoes() 
                 : "Sem observações adicionais.");
-        holder.tvStatus.setText(c.getStatus() != null ? c.getStatus() : Consulta.STATUS_MARCADA);
+        holder.tvStatus.setText(c.getStatus().isEmpty() ? Consulta.STATUS_MARCADA : c.getStatusFormatado());
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onConsultaClick(c);

@@ -34,7 +34,7 @@ public final class ApiClient {
                     SessionManager session = new SessionManager(appContext);
 
                     HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-                    logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
+                    logging.setLevel(HttpLoggingInterceptor.Level.BASIC  );
                     // Não registra o header Authorization no Logcat
                     logging.redactHeader("Authorization");
 

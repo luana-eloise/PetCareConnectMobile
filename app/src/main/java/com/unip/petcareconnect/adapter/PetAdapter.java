@@ -47,11 +47,13 @@ public class PetAdapter extends RecyclerView.Adapter<PetAdapter.ViewHolder> {
 
         holder.tvNome.setText(pet.getNome() != null ? pet.getNome() : "Sem nome");
         holder.tvIdadeBadge.setText(pet.getIdadeFormatada());
-        
-        String raca = (pet.getRaca() != null && !pet.getRaca().trim().isEmpty()) ? pet.getRaca() : "SRD";
-        String especie = pet.getEspecie() != null ? pet.getEspecie() : "Pet";
-        holder.tvTipoRaca.setText(especie + " • Raça: " + raca);
-        holder.tvPeso.setText("Peso: " + pet.getPesoFormatado());
+
+        String raca = pet.getRaca().trim();
+        String tipo = !pet.getTipo().isEmpty() ? pet.getTipo() : "Pet";
+        holder.tvTipoRaca.setText(raca.isEmpty() ? tipo : tipo + " • Raça: " + raca);
+        holder.tvPeso.setText(pet.getPesoValor() != null
+                ? "Peso: " + pet.getPesoFormatado()
+                : pet.getPesoFormatado());
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onPetClick(pet);
